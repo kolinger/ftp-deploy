@@ -5,7 +5,7 @@ Installation
 ------------
 
 1. Python 2.7 required
-2. Download/compiler/install hashdeep binaries (tigerdeep binary must be in PATH). Windows x64 binary provided.
+2. Download/compile/install hashdeep binaries (tigerdeep binary must be in PATH). Windows x64 binary provided.
 3. Install python dependencies ``pip install -r requirements.txt``
 4. Obtain sources ``git clone https://bitbucket.org/kolinger/ftp-deploy.git``
 
@@ -71,9 +71,9 @@ TODO
     2. Multi-threaded deletion
     3. Multi-threaded purge
 3. More friendly installation/usage
-    1. Virtualenv? 
+    1. Virtualenv?
     2. Some kind of binary like package with no/minimal external dependencies?
-    
+
 Bugs
 ----
 
