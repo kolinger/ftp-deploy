@@ -5,7 +5,7 @@ Installation
 ------------
 
 1. Python 2.7 required
-2. Download/compile/install hashdeep binaries (tigerdeep binary must be in PATH)
+2. Download/compile/install hashdeep binaries, tigerdeep binary must be in PATH (https://github.com/jessek/hashdeep)
 3. Install python dependencies ``pip install -r requirements.txt``
 4. Obtain sources ``git clone https://bitbucket.org/kolinger/ftp-deploy.git``
 
@@ -55,10 +55,21 @@ Usage
 
 ``python deploy.py /path/to/my/configuration.json``
 
+Create local configuration file named .ftp-deploy.json and run just  
+``python deploy.py``
+
 Upgrade
 -------
 
 Just ```git pull```
+
+
+Make binary/package
+-------------------
+
+``pip install pyinstaller``  
+``pyinstaller --onefile deploy.py``
+
 
 TODO
 ----
