@@ -41,10 +41,6 @@ class Ftp:
                             continue
 
                         return False
-                    except:
-                        print "Unexpected error:", sys.exc_info()[0]
-
-                        return False
 
     def download_file_contents(self, file):
         self.connect()

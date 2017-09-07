@@ -53,9 +53,10 @@ Configuration is done via .json files.
 Usage
 -----
 
-Provide configuration file as parameter otherwise local directory configuration file named like script/executable name with dot prefix will be used
-
 ``python deploy.py /path/to/my/configuration.json``
+
+Create local configuration file named as .deploy.json (named as script file) and
+``python deploy.py``
 
 Upgrade
 -------
@@ -66,8 +67,8 @@ Just ```git pull```
 Make binary/package
 -------------------
 
-pip install pyinstaller
-pyinstaller --onefile deploy.py
+``pip install pyinstaller``
+``pyinstaller --onefile deploy.py``
 
 
 TODO
