@@ -23,8 +23,7 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 
 try:
-    name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-    fileName = '.' + name + '.json'
+    fileName = '.ftp-deploy.json'
 
     if not os.path.isfile(fileName) and len(sys.argv) < 2:
         logging.error("Configuration file is not provided.")
@@ -33,7 +32,7 @@ try:
         if os.path.isfile(sys.argv[1]):
             fileName = sys.argv[1]
         else:
-            logging.error("Configuration file doesn't exist.")
+            logging.error("Configuration file " + sys.argv[1] + " doesn't exist")
             sys.exit(1)
 
     config = Config()

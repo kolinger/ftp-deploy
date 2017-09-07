@@ -55,7 +55,7 @@ Usage
 
 ``python deploy.py /path/to/my/configuration.json``
 
-Create local configuration file named as .deploy.json (named as script file) and
+Create local configuration file named .ftp-deploy.json and run just
 ``python deploy.py``
 
 Upgrade
