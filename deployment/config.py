@@ -29,7 +29,7 @@ class Config:
             data = json.load(file)
 
         if self.is_defined('local', data):
-            self.local = data['local']
+            self.local = os.path.realpath(data['local'])
 
         if self.is_defined('connection', data):
             inner = data['connection']

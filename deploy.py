@@ -26,7 +26,7 @@ try:
     fileName = '.ftp-deploy.json'
 
     if not os.path.isfile(fileName) and len(sys.argv) < 2:
-        logging.error("Configuration file is not provided.")
+        logging.error("Configuration file " + fileName + " doesn't exist")
         sys.exit(1)
     elif len(sys.argv) > 1:
         if os.path.isfile(sys.argv[1]):
