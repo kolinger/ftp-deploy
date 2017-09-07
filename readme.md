@@ -55,7 +55,7 @@ Usage
 
 ``python deploy.py /path/to/my/configuration.json``
 
-Create local configuration file named .ftp-deploy.json and run just
+Create local configuration file named .ftp-deploy.json and run just  
 ``python deploy.py``
 
 Upgrade
@@ -67,8 +67,7 @@ Just ```git pull```
 Make binary/package
 -------------------
 
-``pip install pyinstaller``
-``pyinstaller --onefile deploy.py``
+``pip install pyinstaller``  ``pyinstaller --onefile deploy.py``
 
 
 TODO
