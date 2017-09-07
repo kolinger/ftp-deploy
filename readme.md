@@ -5,7 +5,7 @@ Installation
 ------------
 
 1. Python 2.7 required
-2. Download/compile/install hashdeep binaries (tigerdeep binary must be in PATH). Windows x64 binary provided. (https://sourceforge.net/projects/md5deep)
+2. Download/compile/install hashdeep binaries (tigerdeep binary must be in PATH). Windows x64 binary provided. (https://github.com/jessek/hashdeep)
 3. Install python dependencies ``pip install -r requirements.txt``
 4. Obtain sources ``git clone https://bitbucket.org/kolinger/ftp-deploy.git``
 
