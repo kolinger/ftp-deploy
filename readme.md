@@ -5,7 +5,7 @@ Installation
 ------------
 
 1. Python 2.7 required
-2. Download/compile/install hashdeep binaries (tigerdeep binary must be in PATH). Windows x64 binary provided.
+2. Download/compile/install hashdeep binaries (tigerdeep binary must be in PATH). Windows x64 binary provided. (https://sourceforge.net/projects/md5deep)
 3. Install python dependencies ``pip install -r requirements.txt``
 4. Obtain sources ``git clone https://bitbucket.org/kolinger/ftp-deploy.git``
 
@@ -53,12 +53,22 @@ Configuration is done via .json files.
 Usage
 -----
 
+Provide configuration file as parameter otherwise local directory configuration file named like script/executable name with dot prefix will be used
+
 ``python deploy.py /path/to/my/configuration.json``
 
 Upgrade
 -------
 
 Just ```git pull```
+
+
+Make binary/package
+-------------------
+
+pip install pyinstaller
+pyinstaller --onefile deploy.py
+
 
 TODO
 ----

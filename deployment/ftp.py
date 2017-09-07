@@ -2,6 +2,7 @@ from cStringIO import StringIO
 from ftplib import FTP, FTP_TLS, error_perm
 import logging
 import os
+import sys
 
 from config import Config
 
@@ -38,6 +39,10 @@ class Ftp:
                                 return False
                             self.create_directory(directory)
                             continue
+
+                        return False
+                    except:
+                        print "Unexpected error:", sys.exc_info()[0]
 
                         return False
 

@@ -1,5 +1,8 @@
+#!/usr/bin/env python2.7
+  
 import logging
 from logging import StreamHandler
+import os
 import sys
 import timeit
 
@@ -20,8 +23,21 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 
 try:
+    name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+    fileName = '.' + name + '.json'
+
+    if not os.path.isfile(fileName) and len(sys.argv) < 2:
+        logging.error("Configuration file is not provided.")
+        sys.exit(1)
+    elif len(sys.argv) > 1:
+        if os.path.isfile(sys.argv[1]):
+            fileName = sys.argv[1]
+        else:
+            logging.error("Configuration file doesn't exist.")
+            sys.exit(1)
+
     config = Config()
-    config.parse(sys.argv[1])
+    config.parse(fileName)
 
     start_time = timeit.default_timer()
     logging.info("Deploying configuration with name " + config.name)
@@ -34,5 +50,8 @@ try:
     elapsed = timeit.default_timer() - start_time
     logging.info("Elapsed time " + str(elapsed) + " seconds")
 
+    sys.exit(0)
+
 except ConfigException as e:
     logging.error("Configuration error: " + e.message)
+    sys.exit(1)
