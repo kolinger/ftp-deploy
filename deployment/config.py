@@ -18,6 +18,7 @@ class Config:
     remote = None
     ignore = []
     purge = []
+    hashdeep_fs_mode = "u"
 
     def __init__(self):
         pass
@@ -62,6 +63,9 @@ class Config:
 
         if 'purge' in data:
             self.purge = data['purge']
+
+        if 'hashdeep_fs_mode' in data:
+            self.hashdeep_fs_mode = data['hashdeep_fs_mode']
 
     def is_defined(self, key, dictionary, description=None):
         if key in dictionary:

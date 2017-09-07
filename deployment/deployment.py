@@ -128,11 +128,15 @@ class Deployment:
 
         try:
             command = self.HASH_DEEP_BINARY
+            if self.config.hashdeep_fs_mode:
+                command.append("-F" + self.config.hashdeep_fs_mode)
             command.append(directory)
             output = self.run_command(command)
         except:
             try:
                 command = self.HASH_DEEP_BINARY_FALLBACK
+                if self.config.hashdeep_fs_mode:
+                    command.append("-F" + self.config.hashdeep_fs_mode)
                 command.append(directory)
                 output = self.run_command(command)
             except OSError as e:
