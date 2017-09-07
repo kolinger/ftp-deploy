@@ -2,7 +2,6 @@ from cStringIO import StringIO
 from ftplib import FTP, FTP_TLS, error_perm
 import logging
 import os
-import sys
 
 from config import Config
 
