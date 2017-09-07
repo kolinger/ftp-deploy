@@ -67,7 +67,8 @@ Just ```git pull```
 Make binary/package
 -------------------
 
-``pip install pyinstaller``  ``pyinstaller --onefile deploy.py``
+``pip install pyinstaller``  
+``pyinstaller --onefile deploy.py``
 
 
 TODO
