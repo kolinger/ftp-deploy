@@ -55,6 +55,10 @@ Usage
 
 ``python deploy.py /path/to/my/configuration.json``
 
+or omit .json extension
+
+``python deploy.py /path/to/my/configuration``
+
 Create local configuration file named .ftp-deploy.json and run just  
 ``python deploy.py``
 
