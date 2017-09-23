@@ -27,7 +27,7 @@ class Scanner:
                 if not self.is_ignored(path):
                     if os.name == "nt":
                         path = path.replace("\\", "/")
-                        result[path[prefix:]] = str(os.path.getmtime(path))
+                        result[path[prefix:]] = str(int(os.path.getmtime(path)))
 
                     directory = path
                     while True:
