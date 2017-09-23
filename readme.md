@@ -5,7 +5,6 @@ Installation
 ------------
 
 1. Python 2.7 required
-2. Download/compile/install hashdeep binaries, tigerdeep binary must be in PATH (https://github.com/jessek/hashdeep)
 2. Obtain sources ``git clone https://bitbucket.org/kolinger/ftp-deploy.git``
 3. Done
 
@@ -68,13 +67,6 @@ Upgrade
 Just ```git pull```
 
 
-Make binary/package
--------------------
-
-``pip install pyinstaller``  
-``pyinstaller --onefile deploy.py``
-
-
 TODO
 ----
 
@@ -82,9 +74,8 @@ TODO
     1. Count failed and successful uploads and show result at the end
     2. Try re-upload failed objects (enabled/disabled/retry count configured via .json)
 2. Performance improvements - threads, threads, threads for everyone
-    1. Multi-threaded scanning
-    2. Multi-threaded deletion
-    3. Multi-threaded purge
+    1. Multi-threaded deletion
+    2. Multi-threaded purge
 3. More friendly installation/usage
     1. Virtualenv?
     2. Some kind of binary like package with no/minimal external dependencies?

@@ -48,7 +48,7 @@ class UploadWorker(Thread):
             return self.ftp.create_directory(remote)
         elif os.path.isfile(local):
             self.size = os.path.getsize(local)
-            if self.size > 1024 * 1024:
+            if self.size > (1024 * 1024):
                 callback = self.progress
             else:
                 callback = None

@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import os
 from multiprocessing import Lock
 
@@ -14,7 +15,7 @@ class Index:
 
     file = None
     lock = Lock()
-    hashes = {}
+    times = {}
 
     def __init__(self):
         self.config = Config()
@@ -33,7 +34,22 @@ class Index:
         else:
             contents = self.ftp.download_file_contents(self.config.remote + self.FILE_NAME)
             if contents:
-                contents = contents.split("\n")
+                lines = contents.split("\n")
+                contents = OrderedDict()
+                for line in lines:
+                    if line:
+                        parts = line.split(" ", 1)
+
+                        if len(parts) != 2:
+                            continue
+
+                        time = parts[0].strip()
+                        path = parts[1].strip()
+
+                        if time == "None":
+                            time = None
+
+                        contents[path] = time
 
         return {
             "remove": remove,
@@ -43,16 +59,16 @@ class Index:
     def write(self, path):
         self.lock.acquire()
 
-        hash = None
-        if path in self.hashes:
-            hash = self.hashes[path]
+        time = None
+        if path in self.times:
+            time = self.times[path]
 
         if not self.file:
             if os.path.isfile(self.file_path) and not os.path.isfile(self.backup_path):
                 os.rename(self.file_path, self.backup_path)
             self.file = open(self.file_path, "w")
 
-        self.file.write(str(hash) + " " + path + "\n")
+        self.file.write(str(time) + " " + path + "\n")
         self.file.flush()
 
         self.lock.release()
