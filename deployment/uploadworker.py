@@ -62,4 +62,6 @@ class UploadWorker(Thread):
 
         if self.percent != percent:
             self.percent = percent
+            if self.percent > 100:
+                self.percent = 100
             logging.info(self.prefix + " [" + str(self.percent) + "%]")
