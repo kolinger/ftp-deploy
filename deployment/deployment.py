@@ -2,13 +2,14 @@ from Queue import Queue
 from ftplib import error_perm
 import logging
 import os
+import time
 
 from config import Config
 from counter import Counter
 from ftp import Ftp
 from index import Index
 from scanner import Scanner
-from uploadworker import UploadWorker
+from worker import Worker
 
 
 class Deployment:
@@ -17,7 +18,6 @@ class Deployment:
         self.counter = Counter()
         self.index = Index()
         self.ftp = Ftp()
-        self.queue = Queue()
 
     def deploy(self):
         logging.info("Scanning...")
@@ -26,23 +26,24 @@ class Deployment:
 
         logging.info("Calculating changes...")
 
-        to_delete = []
-
         result = self.index.read()
         remove = result["remove"]
         contents = result["contents"]
 
+        uploadQueue = Queue()
+        to_delete = []
+
         offset = 0
         if contents is None:
             for path in objects:
-                self.queue.put(path)
+                uploadQueue.put(path)
         else:
             for path in objects:
-                time = objects[path]
-                if path in contents and (time is None or time == contents[path]):
+                modification_time = objects[path]
+                if path in contents and (modification_time is None or modification_time == contents[path]):
                     self.index.write(path)
                 else:
-                    self.queue.put(path)
+                    uploadQueue.put(path)
 
             if os.path.isfile(self.index.backup_path):
                 os.remove(self.index.backup_path)
@@ -54,37 +55,72 @@ class Deployment:
             else:
                 offset = len(contents)
 
-        self.counter.total = str(self.queue.qsize() + offset)
-        self.counter.count = 1 + offset
+        if uploadQueue.qsize() == 0:
+            logging.info("Nothing to upload")
+        else:
+            logging.info("Uploading...")
 
-        for number in range(self.config.threads):
-            worker = UploadWorker(self.queue)
-            worker.start()
+            self.counter.total = str(uploadQueue.qsize() + offset)
+            self.counter.count = 1 + offset
 
-        self.queue.join()
+            for number in range(self.config.threads):
+                worker = Worker(uploadQueue, Worker.MODE_UPLOAD)
+                worker.start()
 
-        logging.info("Uploading done")
+            uploadQueue.join()
 
-        for path in reversed(to_delete):
-            try:
-                logging.info("Removing " + path)
-                self.ftp.delete_file_or_directory(self.config.remote + path)
-            except error_perm as e:
-                logging.exception(e)
+            logging.info("Uploading done")
 
-        logging.info("Removing done")
+        if len(to_delete) == 0:
+            logging.info("Nothing to remove")
+        else:
+            logging.info("Removing...")
+
+            removeQueue = Queue()
+            for path in reversed(to_delete):
+                removeQueue.put(self.config.remote + path)
+
+            self.counter.total = str(removeQueue.qsize())
+            self.counter.count = 1
+
+            for number in range(self.config.threads):
+                worker = Worker(removeQueue, Worker.MODE_REMOVE)
+                worker.start()
+
+            removeQueue.join()
+
+            logging.info("Removing done")
 
         self.index.upload()
 
         logging.info("Index uploaded")
 
-        self.purge()
+        if len(self.config.purge) == 0:
+            logging.info("Nothing to purge")
+        else:
+            logging.info("Purging...")
+
+            to_delete = []
+            suffix = str(int(time.time()))
+            for path in self.config.purge:
+                current = self.config.remote + path
+                new = current + "_" + suffix
+                to_delete.append(new)
+
+                try:
+                    self.ftp.rename(current, new)
+                    self.ftp.create_directory(current)
+                except error_perm:
+                    pass
+
+            for path in to_delete:
+                logging.info("Cleaning " + path)
+                try:
+                    self.ftp.delete_recursive(path)
+                    self.ftp.delete_file_or_directory(path)
+                except error_perm:
+                    pass
+
+            logging.info("Purging done")
 
         self.ftp.close()
-
-    def purge(self):
-        for path in self.config.purge:
-            try:
-                self.ftp.delete_recursive(self.config.remote + path)
-            except error_perm as e:
-                pass

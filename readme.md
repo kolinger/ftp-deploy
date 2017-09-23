@@ -66,19 +66,12 @@ Upgrade
 
 Just ```git pull```
 
-
 TODO
 ----
 
 1. Better error handling
     1. Count failed and successful uploads and show result at the end
     2. Try re-upload failed objects (enabled/disabled/retry count configured via .json)
-2. Performance improvements - threads, threads, threads for everyone
-    1. Multi-threaded deletion
-    2. Multi-threaded purge
-3. More friendly installation/usage
-    1. Virtualenv?
-    2. Some kind of binary like package with no/minimal external dependencies?
 
 Bugs
 ----

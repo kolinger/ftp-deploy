@@ -21,6 +21,16 @@ class Ftp:
 
         return self.ftp
 
+    def rename(self, current, new):
+        self.connect()
+
+        self.ftp.rename(current, new)
+
+    def create_directory(self, directory):
+        self.connect()
+
+        self.ftp.mkd(directory)
+
     def upload_file(self, local, remote, callback):
         self.connect()
 
@@ -70,15 +80,11 @@ class Ftp:
 
         try:
             self.ftp.delete(target)
-            return True
         except error_perm:
             try:
                 self.ftp.rmd(target)
-                return True
             except error_perm as e:
-                logging.error("File deletion failed, reason: " + e.message)
-
-        return False
+                raise e
 
     def create_directory(self, directory):
         self.connect()
