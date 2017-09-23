@@ -111,17 +111,9 @@ class Deployment:
     def purge(self):
         for path in self.config.purge:
             try:
-                # config = Config()
-                # ftp = FTPHost(self.ftp)
-                # for dirname, subdirs, files in ftp.walk(config.remote + path):
-                #     print dirname, "has file(s)", ", ".join(files)
-                # self.ftp.list_directory_contents(self.config.remote + path, self.spam)
                 self.ftp.delete_recursive(self.config.remote + path)
             except error_perm as e:
                 pass
-
-    def spam(self, path):
-        print path
 
     def scan(self, directory):
         command = []
