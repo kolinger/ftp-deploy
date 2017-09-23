@@ -28,7 +28,7 @@ class UploadWorker(Thread):
     def run(self):
         while not self.queue.empty():
             try:
-                path = self.queue.get(timeout=1)
+                path = self.queue.get_nowait()
                 if path:
                     self.prefix = "Uploading (" + self.counter.counter() + ") " + path
                     logging.info(self.prefix)
