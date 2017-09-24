@@ -41,25 +41,25 @@ class Index:
             if contents:
                 try:
                     contents = bz2.decompress(contents)
+                    contents = contents.decode("utf-8")
+                    lines = contents.split("\n")
+                    contents = OrderedDict()
+                    for line in lines:
+                        if line:
+                            parts = line.split(" ", 1)
+
+                            if len(parts) != 2:
+                                continue
+
+                            time = parts[0].strip()
+                            path = parts[1].strip()
+
+                            if time == "None":
+                                time = None
+
+                            contents[path] = time
                 except IOError:
                     pass
-                contents = contents.decode("utf-8")
-                lines = contents.split("\n")
-                contents = OrderedDict()
-                for line in lines:
-                    if line:
-                        parts = line.split(" ", 1)
-
-                        if len(parts) != 2:
-                            continue
-
-                        time = parts[0].strip()
-                        path = parts[1].strip()
-
-                        if time == "None":
-                            time = None
-
-                        contents[path] = time
 
         return {
             "remove": remove,
@@ -83,8 +83,7 @@ class Index:
         self.lock.release()
 
     def upload(self):
-        if self.file:
-            self.file.close()
+        self.close()
 
         local = self.config.local + self.FILE_NAME
         remote = self.config.remote + self.FILE_NAME
@@ -92,4 +91,5 @@ class Index:
             os.remove(local)
 
     def close(self):
-        self.file.close()
+        if self.file is not None:
+            self.file.close()
