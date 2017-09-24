@@ -1,7 +1,8 @@
 from collections import OrderedDict
+import logging
 import os
 
-import logging
+from index import Index
 
 
 class Scanner:
@@ -22,7 +23,7 @@ class Scanner:
         prefix = len(root)
 
         for folder, subs, files in os.walk(root):
-            if folder not in result:
+            if folder not in result and folder != root:
                 pattern = self.is_ignored(folder)
                 if not pattern or pattern == folder:
                     directory = folder[prefix:]
@@ -62,6 +63,9 @@ class Scanner:
         return ordered
 
     def format_ignored(self, ignored):
+        ignored.append(Index.FILE_NAME)
+        ignored.append(Index.BACKUP_FILE_NAME)
+
         formatted = []
         for pattern in ignored:
             if pattern.startswith("/"):
@@ -69,6 +73,7 @@ class Scanner:
             if os.name == "nt":
                 pattern = pattern.replace("/", "\\")
             formatted.append(pattern)
+
         return formatted
 
     def is_ignored(self, path):

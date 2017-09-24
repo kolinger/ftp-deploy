@@ -2,6 +2,8 @@ from collections import OrderedDict
 import os
 from multiprocessing import Lock
 
+import logging
+
 from common.singleton import Singleton
 from config import Config
 from ftp import Ftp
@@ -32,7 +34,10 @@ class Index:
                 contents = file.readlines()
             remove = False
         else:
+            logging.info("Downloading index...")
             contents = self.ftp.download_file_contents(self.config.remote + self.FILE_NAME)
+            logging.info("Index downloaded")
+
             if contents:
                 lines = contents.split("\n")
                 contents = OrderedDict()
