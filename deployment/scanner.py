@@ -20,14 +20,24 @@ class Scanner:
         if os.name == "nt":
             root = root.replace("\\", "/")
         prefix = len(root)
+
         for folder, subs, files in os.walk(root):
+            if folder not in result:
+                pattern = self.is_ignored(folder)
+                if not pattern or pattern == folder:
+                    directory = folder[prefix:]
+                    if os.name == "nt":
+                        directory = directory.replace("\\", "/")
+                    result[directory] = None
+
             for file in files:
                 total += 1
                 path = os.path.join(folder, file)
                 if not self.is_ignored(path):
                     if os.name == "nt":
                         path = path.replace("\\", "/")
-                        result[path[prefix:]] = str(int(os.path.getmtime(path)))
+
+                    result[path[prefix:]] = str(int(os.path.getmtime(path)))
 
                     directory = path
                     while True:
@@ -54,6 +64,8 @@ class Scanner:
     def format_ignored(self, ignored):
         formatted = []
         for pattern in ignored:
+            if pattern.startswith("/"):
+                formatted.append(self.root + pattern)
             if os.name == "nt":
                 pattern = pattern.replace("/", "\\")
             formatted.append(pattern)
@@ -61,9 +73,9 @@ class Scanner:
 
     def is_ignored(self, path):
         for pattern in self.ignored:
-            if pattern.startswith("/") and path.startswith(pattern):
-                return True
+            if (pattern.startswith("/") or pattern.startswith("\\")) and path.startswith(pattern):
+                return pattern
             elif pattern in path:
-                return True
+                return pattern
 
         return False

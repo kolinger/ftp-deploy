@@ -75,6 +75,7 @@ class Worker(Thread):
                         })
                     else:
                         logging.exception(e)
+                        self.queue.task_done()
             except Empty:
                 pass
 

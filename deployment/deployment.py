@@ -108,7 +108,6 @@ class Deployment:
                         pass
 
             for path in to_delete:
-                logging.info("Cleaning " + path)
                 try:
                     self.ftp.delete_recursive(path)
                     self.ftp.delete_file_or_directory(path)
