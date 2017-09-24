@@ -18,6 +18,8 @@ class Counter:
     def counter(self):
         self.lock.acquire()
         count = self.count
+        if count > self.total:
+            count = self.total
         self.count += 1
         self.lock.release()
         return self.format(count)

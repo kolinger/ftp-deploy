@@ -29,7 +29,12 @@ class Ftp:
     def create_directory(self, directory):
         self.connect()
 
-        self.ftp.mkd(directory)
+        try:
+            self.ftp.mkd(directory)
+        except error_perm as e:
+            if e.message.startswith("550"):
+                return  # already exists - ignore
+            raise e
 
     def upload_file(self, local, remote, callback):
         self.connect()
@@ -39,7 +44,7 @@ class Ftp:
                 directory = remote
                 while True:
                     try:
-                        self.ftp.storbinary("STOR " + remote, file, 1024, callback)
+                        self.ftp.storbinary("STOR " + remote, file, 8192, callback)
                         return True
                     except error_perm as e:
                         if e.message.startswith("553"):  # directory not exists
@@ -75,10 +80,18 @@ class Ftp:
         try:
             self.ftp.delete(target)
         except error_perm:
-            try:
-                self.ftp.rmd(target)
-            except error_perm as e:
-                raise e
+            directory = target
+            while True:
+                try:
+                    self.ftp.rmd(directory)
+                except error_perm as e:
+                    if e.message.startswith("550"):  # directory not exists
+                        directory = os.path.dirname(directory)
+                        if directory == "/":
+                            return
+                        self.create_directory(directory)
+                        continue
+                    raise e
 
     def delete_directory(self, directory):
         self.connect()

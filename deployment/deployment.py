@@ -60,14 +60,10 @@ class Deployment:
         else:
             logging.info("Uploading...")
 
-            self.counter.total = str(uploadQueue.qsize() + offset)
+            self.counter.total = uploadQueue.qsize() + offset
             self.counter.count = 1 + offset
 
-            for number in range(self.config.threads):
-                worker = Worker(uploadQueue, Worker.MODE_UPLOAD)
-                worker.start()
-
-            uploadQueue.join()
+            self.process_queue(uploadQueue, Worker.MODE_UPLOAD)
 
             logging.info("Uploading done")
 
@@ -80,19 +76,15 @@ class Deployment:
             for path in reversed(to_delete):
                 removeQueue.put(self.config.remote + path)
 
-            self.counter.total = str(removeQueue.qsize())
+            self.counter.total = removeQueue.qsize()
             self.counter.count = 1
 
-            for number in range(self.config.threads):
-                worker = Worker(removeQueue, Worker.MODE_REMOVE)
-                worker.start()
-
-            removeQueue.join()
+            self.process_queue(removeQueue, Worker.MODE_REMOVE)
 
             logging.info("Removing done")
 
+        logging.info("Uploading index...")
         self.index.upload()
-
         logging.info("Index uploaded")
 
         if len(self.config.purge) == 0:
@@ -126,3 +118,16 @@ class Deployment:
             logging.info("Purging done")
 
         self.ftp.close()
+
+    def process_queue(self, queue, mode):
+        workers = []
+        for number in range(self.config.threads):
+            worker = Worker(queue, mode)
+            worker.start()
+            workers.append(worker)
+
+        queue.join()
+
+        for worker in workers:
+            worker.stop()
+            worker.join()

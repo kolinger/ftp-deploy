@@ -16,6 +16,7 @@ class Config:
     user = None
     password = None
     remote = None
+    retry_count = 10
     ignore = []
     purge = []
 
@@ -56,6 +57,9 @@ class Config:
 
             if self.is_defined('root', inner, 'connection.root'):
                 self.remote = inner['root']
+
+        if 'retry_count' in data:
+            self.retry_count = data['retry_count']
 
         if 'ignore' in data:
             self.ignore = data['ignore']

@@ -25,6 +25,7 @@ Configuration is done via .json files.
         "password": "password",
         "root": "/remote/path"
     },
+    "retry_count": 10,
     "ignore": [
         ".git",
         ".idea",
@@ -65,17 +66,3 @@ Upgrade
 -------
 
 Just ```git pull```
-
-TODO
-----
-
-1. Better error handling
-    1. Count failed and successful uploads and show result at the end
-    2. Try re-upload failed objects (enabled/disabled/retry count configured via .json)
-
-Bugs
-----
-
-1. Minority of objects is randomly omitted
-    1. Fix: implement better error handling
-    2. Workaround: run deploy multiple time until no object is found
