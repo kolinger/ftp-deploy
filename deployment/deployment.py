@@ -104,14 +104,16 @@ class Deployment:
             suffix = str(int(time.time()))
             for path in self.config.purge:
                 current = self.config.remote + path
-                new = current + "_" + suffix
-                to_delete.append(new)
-
                 try:
-                    self.ftp.rename(current, new)
-                    self.ftp.create_directory(current)
+                    self.ftp.delete_file(current)
                 except error_perm:
-                    pass
+                    try:
+                        new = current + "_" + suffix
+                        self.ftp.rename(current, new)
+                        to_delete.append(new)
+                        self.ftp.create_directory(current)
+                    except error_perm:
+                        pass
 
             for path in to_delete:
                 logging.info("Cleaning " + path)

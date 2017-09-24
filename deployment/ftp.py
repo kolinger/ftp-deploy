@@ -67,13 +67,7 @@ class Ftp:
     def delete_file(self, file):
         self.connect()
 
-        try:
-            self.ftp.delete(file)
-            return True
-        except error_perm as e:
-            logging.error("File deletion failed, reason: " + e.message)
-
-        return False
+        self.ftp.delete(file)
 
     def delete_file_or_directory(self, target):
         self.connect()
@@ -85,19 +79,6 @@ class Ftp:
                 self.ftp.rmd(target)
             except error_perm as e:
                 raise e
-
-    def create_directory(self, directory):
-        self.connect()
-
-        try:
-            self.ftp.mkd(directory)
-            return True
-        except error_perm as e:
-            if e.message.startswith("550"):
-                return True  # already exists - ignore
-            logging.error("Directory creation failed, reason: " + e.message)
-
-        return False
 
     def delete_directory(self, directory):
         self.connect()
