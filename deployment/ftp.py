@@ -1,5 +1,5 @@
-from cStringIO import StringIO
 from ftplib import FTP, FTP_TLS, error_perm
+from io import BytesIO
 import logging
 import os
 
@@ -56,11 +56,11 @@ class Ftp:
 
                         return False
 
-    def download_file_contents(self, file):
+    def download_file_bytes(self, file):
         self.connect()
 
         try:
-            buffer = StringIO()
+            buffer = BytesIO()
             self.ftp.retrbinary("RETR " + file, buffer.write)
             return buffer.getvalue()
         except error_perm as e:

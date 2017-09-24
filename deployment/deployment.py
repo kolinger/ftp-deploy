@@ -116,8 +116,6 @@ class Deployment:
 
             logging.info("Purging done")
 
-        self.ftp.close()
-
     def process_queue(self, queue, mode):
         workers = []
         for number in range(self.config.threads):
@@ -130,3 +128,7 @@ class Deployment:
         for worker in workers:
             worker.stop()
             worker.join()
+
+    def close(self):
+        self.index.close()
+        self.ftp.close()

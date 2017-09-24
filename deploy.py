@@ -22,6 +22,7 @@ console.setLevel(logging.DEBUG)
 console.setFormatter(formatter)
 logger.addHandler(console)
 
+deployment = None
 try:
     fileName = '.ftp-deploy.json'
 
@@ -57,3 +58,6 @@ try:
 except ConfigException as e:
     logging.error("Configuration error: " + e.message)
     sys.exit(1)
+finally:
+    if deployment is not None:
+        deployment.close()

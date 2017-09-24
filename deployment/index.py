@@ -1,8 +1,8 @@
+import bz2
 from collections import OrderedDict
-import os
-from multiprocessing import Lock
-
 import logging
+from multiprocessing import Lock
+import os
 
 from common.singleton import Singleton
 from config import Config
@@ -35,10 +35,15 @@ class Index:
             remove = False
         else:
             logging.info("Downloading index...")
-            contents = self.ftp.download_file_contents(self.config.remote + self.FILE_NAME)
+            contents = self.ftp.download_file_bytes(self.config.remote + self.FILE_NAME)
             logging.info("Index downloaded")
 
             if contents:
+                try:
+                    contents = bz2.decompress(contents)
+                except IOError:
+                    pass
+                contents = contents.decode("utf-8")
                 lines = contents.split("\n")
                 contents = OrderedDict()
                 for line in lines:
@@ -71,10 +76,9 @@ class Index:
         if not self.file:
             if os.path.isfile(self.file_path) and not os.path.isfile(self.backup_path):
                 os.rename(self.file_path, self.backup_path)
-            self.file = open(self.file_path, "w")
+            self.file = bz2.BZ2File(self.file_path, "w")
 
         self.file.write(str(time) + " " + path + "\n")
-        self.file.flush()
 
         self.lock.release()
 
@@ -86,3 +90,6 @@ class Index:
         remote = self.config.remote + self.FILE_NAME
         if self.ftp.upload_file(local, remote, None):
             os.remove(local)
+
+    def close(self):
+        self.file.close()
