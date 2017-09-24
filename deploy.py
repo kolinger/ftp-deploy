@@ -32,9 +32,6 @@ try:
         fileName = sys.argv[1]
 
         if not os.path.isfile(fileName):
-            fileName = sys.argv[1] + ".json"
-
-        if not os.path.isfile(fileName):
             fileName = ".ftp-" + sys.argv[1] + ".json"
 
         if not os.path.isfile(fileName):

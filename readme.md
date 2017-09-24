@@ -55,10 +55,6 @@ Usage
 
 ``python deploy.py /path/to/my/configuration.json``
 
-or omit .json extension
-
-``python deploy.py /path/to/my/configuration``
-
 or use more user-friendly pattern
 
 ``python deploy.py dev``
