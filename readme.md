@@ -59,7 +59,14 @@ or omit .json extension
 
 ``python deploy.py /path/to/my/configuration``
 
-Create local configuration file named .ftp-deploy.json and run just  
+or use more user-friendly pattern
+
+``python deploy.py dev``
+
+will look for .ftp-dev.json
+
+or create local configuration file named .ftp-deploy.json and run just  
+
 ``python deploy.py``
 
 Upgrade

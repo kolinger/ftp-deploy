@@ -30,8 +30,12 @@ try:
         sys.exit(1)
     elif len(sys.argv) > 1:
         fileName = sys.argv[1]
+
         if not os.path.isfile(fileName):
             fileName = sys.argv[1] + ".json"
+
+        if not os.path.isfile(fileName):
+            fileName = ".ftp-" + sys.argv[1] + ".json"
 
         if not os.path.isfile(fileName):
             logging.error("Configuration file " + sys.argv[1] + " doesn't exist")
