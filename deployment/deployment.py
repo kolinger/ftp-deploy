@@ -123,7 +123,12 @@ class Deployment:
             worker.start()
             workers.append(worker)
 
-        queue.join()
+        wait = True
+        while wait:
+            wait = not queue.empty()
+            if not wait:
+                time.sleep(1)
+                wait = not queue.empty()
 
         for worker in workers:
             worker.stop()
