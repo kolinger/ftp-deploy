@@ -4,6 +4,8 @@ import logging
 import os
 from threading import Thread
 
+import sys
+
 from config import Config
 from counter import Counter
 from ftp import Ftp
@@ -57,6 +59,9 @@ class Worker(Thread):
 
                             self.upload(path)
                             self.index.write(path)
+                            if retry > 0:
+                                counter = str(retry) + " of " + str(self.config.retry_count)
+                                logging.info("Repeated upload (" + counter + ") WAS SUCCESSFUL")
 
                         elif self.mode == self.MODE_REMOVE:
                             if retry > 0:
@@ -68,7 +73,9 @@ class Worker(Thread):
                             self.ftp.delete_file_or_directory(path)
 
                     self.queue.task_done()
-                except error_perm as e:
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except Exception as e:
                     if retry < self.config.retry_count:
                         self.queue.put({
                             "path": path,
@@ -77,6 +84,8 @@ class Worker(Thread):
                     else:
                         logging.exception(e)
                         self.failed.put(self.mode + " " + path + " (" + str(e).decode("ibm852") + ")")
+
+                    self.ftp.close()
 
                     self.queue.task_done()
             except Empty:
