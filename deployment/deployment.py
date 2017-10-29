@@ -18,6 +18,7 @@ class Deployment:
         self.counter = Counter()
         self.index = Index()
         self.ftp = Ftp()
+        self.failed = Queue()
 
     def deploy(self):
         logging.info("Scanning...")
@@ -116,10 +117,15 @@ class Deployment:
 
             logging.info("Purging done")
 
+        if not self.failed.empty():
+            logging.fatal("FAILED TO PROCESS FOLLOWING OBJECTS")
+            for object in list(self.failed.queue):
+                logging.fatal("failed to " + object)
+
     def process_queue(self, queue, mode):
         workers = []
         for number in range(self.config.threads):
-            worker = Worker(queue, mode)
+            worker = Worker(queue, self.failed, mode)
             worker.start()
             workers.append(worker)
 

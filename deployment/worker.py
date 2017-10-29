@@ -21,12 +21,13 @@ class Worker(Thread):
     written = 0
     percent = None
 
-    def __init__(self, queue, mode):
+    def __init__(self, queue, failed, mode):
         super(Worker, self).__init__()
         self.daemon = True
 
-        self.mode = mode
         self.queue = queue
+        self.failed = failed
+        self.mode = mode
         self.config = Config()
         self.counter = Counter()
         self.index = Index()
@@ -75,6 +76,8 @@ class Worker(Thread):
                         })
                     else:
                         logging.exception(e)
+                        self.failed.put(self.mode + " " + path + " (" + str(e).decode("ibm852") + ")")
+
                     self.queue.task_done()
             except Empty:
                 pass
