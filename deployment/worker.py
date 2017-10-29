@@ -59,9 +59,10 @@ class Worker(Thread):
 
                             self.upload(path)
                             self.index.write(path)
+
                             if retry > 0:
                                 counter = str(retry) + " of " + str(self.config.retry_count)
-                                logging.info("Repeated upload (" + counter + ") WAS SUCCESSFUL")
+                                logging.info("Repeated upload (" + counter + ") " + path + " WAS SUCCESSFUL")
 
                         elif self.mode == self.MODE_REMOVE:
                             if retry > 0:
@@ -71,6 +72,10 @@ class Worker(Thread):
                                 logging.info("Removing (" + self.counter.counter() + ") " + path)
 
                             self.ftp.delete_file_or_directory(path)
+
+                            if retry > 0:
+                                counter = str(retry) + " of " + str(self.config.retry_count)
+                                logging.info("Repeated remove (" + counter + ") " + path + " WAS SUCCESSFUL")
 
                     self.queue.task_done()
                 except (KeyboardInterrupt, SystemExit):
