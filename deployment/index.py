@@ -61,6 +61,9 @@ class Index:
                 except IOError:
                     pass
 
+        if type(contents) is not OrderedDict:
+            contents = {}
+
         return {
             "remove": remove,
             "contents": contents
