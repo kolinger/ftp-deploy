@@ -159,4 +159,11 @@ class Ftp:
 
     def close(self):
         if self.ftp:
-            self.ftp.quit()
+            try:
+                self.ftp.quit()
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except Exception:
+                pass
+            finally:
+                self.ftp = None
