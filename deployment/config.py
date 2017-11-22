@@ -19,6 +19,7 @@ class Config:
     retry_count = 10
     ignore = []
     purge = []
+    file_log = False
 
     def __init__(self):
         pass
@@ -66,6 +67,9 @@ class Config:
 
         if 'purge' in data:
             self.purge = data['purge']
+
+        if 'file_log' in data:
+            self.file_log = data['file_log']
 
     def is_defined(self, key, dictionary, description=None):
         if key in dictionary:

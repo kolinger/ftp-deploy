@@ -1,10 +1,8 @@
 from Queue import Empty
-from ftplib import error_perm
 import logging
 import os
 from threading import Thread
-
-import sys
+from time import time
 
 from config import Config
 from counter import Counter
@@ -22,6 +20,7 @@ class Worker(Thread):
     size = None
     written = 0
     percent = None
+    next_percent_update = None
 
     def __init__(self, queue, failed, mode):
         super(Worker, self).__init__()
@@ -107,6 +106,8 @@ class Worker(Thread):
         elif os.path.isfile(local):
             self.size = os.path.getsize(local)
             if self.size > (1024 * 1024):
+                self.percent = 0
+                self.next_percent_update = None
                 callback = self.upload_progress
             else:
                 callback = None
@@ -120,7 +121,9 @@ class Worker(Thread):
             self.percent = percent
             if self.percent > 100:
                 self.percent = 100
-            logging.info(self.prefix + " [" + str(self.percent) + "%]")
+            if self.next_percent_update < time():
+                logging.info(self.prefix + " [" + str(self.percent) + "%]")
+            self.next_percent_update = time() + 2
 
     def stop(self):
         self.running = False

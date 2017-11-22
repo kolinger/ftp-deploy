@@ -1,7 +1,7 @@
 #!/usr/bin/env python
   
 import logging
-from logging import StreamHandler
+from logging import FileHandler, StreamHandler
 import os
 import sys
 import timeit
@@ -41,6 +41,12 @@ try:
 
     config = Config()
     config.parse(fileName)
+
+    if config.file_log:
+        file = FileHandler(config.local + "/" + fileName + ".log")
+        file.setLevel(logging.INFO)
+        file.setFormatter(formatter)
+        logger.addHandler(file)
 
     start_time = timeit.default_timer()
     logging.info("Deploying configuration with name " + config.name)
