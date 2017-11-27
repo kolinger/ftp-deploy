@@ -38,28 +38,28 @@ class Index:
             contents = self.ftp.download_file_bytes(self.config.remote + self.FILE_NAME)
             logging.info("Index downloaded")
 
-            if contents:
-                try:
-                    contents = bz2.decompress(contents)
-                    contents = contents.decode("utf-8")
-                    lines = contents.split("\n")
-                    contents = OrderedDict()
-                    for line in lines:
-                        if line:
-                            parts = line.split(" ", 1)
+        if contents:
+            try:
+                contents = bz2.decompress(contents)
+                contents = contents.decode("utf-8")
+                lines = contents.split("\n")
+                contents = OrderedDict()
+                for line in lines:
+                    if line:
+                        parts = line.split(" ", 1)
 
-                            if len(parts) != 2:
-                                continue
+                        if len(parts) != 2:
+                            continue
 
-                            time = parts[0].strip()
-                            path = parts[1].strip()
+                        time = parts[0].strip()
+                        path = parts[1].strip()
 
-                            if time == "None":
-                                time = None
+                        if time == "None":
+                            time = None
 
-                            contents[path] = time
-                except IOError:
-                    pass
+                        contents[path] = time
+            except IOError:
+                pass
 
         if type(contents) is not OrderedDict:
             contents = {}
