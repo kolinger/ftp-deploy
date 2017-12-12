@@ -1,11 +1,7 @@
 from multiprocessing import Lock
 
-from common.singleton import Singleton
-
 
 class Counter:
-    __metaclass__ = Singleton
-
     total = None
     suffix = None
     suffixLength = None

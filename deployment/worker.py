@@ -4,10 +4,7 @@ import os
 from threading import Thread
 from time import time
 
-from config import Config
-from counter import Counter
 from ftp import Ftp
-from index import Index
 
 
 class Worker(Thread):
@@ -22,17 +19,17 @@ class Worker(Thread):
     percent = None
     next_percent_update = None
 
-    def __init__(self, queue, failed, mode):
+    def __init__(self, queue, config, counter, index, failed, mode):
         super(Worker, self).__init__()
         self.daemon = True
 
         self.queue = queue
         self.failed = failed
         self.mode = mode
-        self.config = Config()
-        self.counter = Counter()
-        self.index = Index()
-        self.ftp = Ftp()
+        self.config = config
+        self.counter = counter
+        self.index = index
+        self.ftp = Ftp(self.config)
 
     def run(self):
         while self.running:

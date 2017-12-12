@@ -53,7 +53,7 @@ try:
 
     logging.info("Using " + str(config.threads) + " threads")
 
-    deployment = Deployment()
+    deployment = Deployment(config)
     deployment.deploy()
 
     elapsed = timeit.default_timer() - start_time

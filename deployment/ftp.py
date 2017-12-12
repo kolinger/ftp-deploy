@@ -3,14 +3,12 @@ from io import BytesIO
 import logging
 import os
 
-from config import Config
-
 
 class Ftp:
     ftp = None
 
-    def __init__(self):
-        self.config = Config()
+    def __init__(self, config):
+        self.config = config
 
     def connect(self):
         if not self.ftp:

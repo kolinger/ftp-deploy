@@ -1,12 +1,8 @@
 import json
 import os
 
-from common.singleton import Singleton
-
 
 class Config:
-    __metaclass__ = Singleton
-
     name = None
     threads = 1
     local = None

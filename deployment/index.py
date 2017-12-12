@@ -4,14 +4,10 @@ import logging
 from multiprocessing import Lock
 import os
 
-from common.singleton import Singleton
-from config import Config
 from ftp import Ftp
 
 
 class Index:
-    __metaclass__ = Singleton
-
     FILE_NAME = "/.deployment-index"
     BACKUP_FILE_NAME = "/.deployment-index.backup"
 
@@ -19,9 +15,9 @@ class Index:
     lock = Lock()
     times = {}
 
-    def __init__(self):
-        self.config = Config()
-        self.ftp = Ftp()
+    def __init__(self, config):
+        self.config = config
+        self.ftp = Ftp(self.config)
 
         self.file_path = self.config.local + self.FILE_NAME
         self.backup_path = self.config.local + self.BACKUP_FILE_NAME

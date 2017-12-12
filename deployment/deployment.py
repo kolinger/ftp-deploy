@@ -4,7 +4,6 @@ import logging
 import os
 import time
 
-from config import Config
 from counter import Counter
 from ftp import Ftp
 from index import Index
@@ -13,11 +12,11 @@ from worker import Worker
 
 
 class Deployment:
-    def __init__(self):
-        self.config = Config()
+    def __init__(self, config):
+        self.config = config
         self.counter = Counter()
-        self.index = Index()
-        self.ftp = Ftp()
+        self.index = Index(self.config)
+        self.ftp = Ftp(self.config)
         self.failed = Queue()
 
     def deploy(self):
@@ -125,7 +124,7 @@ class Deployment:
     def process_queue(self, queue, mode):
         workers = []
         for number in range(self.config.threads):
-            worker = Worker(queue, self.failed, mode)
+            worker = Worker(queue, self.config, self.counter, self.index, self.failed, mode)
             worker.start()
             workers.append(worker)
 
