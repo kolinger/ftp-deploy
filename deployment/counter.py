@@ -11,6 +11,11 @@ class Counter:
     def __init__(self):
         pass
 
+    def reset(self):
+        self.suffix = None
+        self.suffixLength = None
+        self.count = 1
+
     def counter(self):
         self.lock.acquire()
         count = self.count

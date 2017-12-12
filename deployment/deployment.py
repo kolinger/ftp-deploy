@@ -76,8 +76,8 @@ class Deployment:
             for path in reversed(to_delete):
                 removeQueue.put(self.config.remote + path)
 
+            self.counter.reset()
             self.counter.total = removeQueue.qsize()
-            self.counter.count = 1
 
             self.process_queue(removeQueue, Worker.MODE_REMOVE)
 
