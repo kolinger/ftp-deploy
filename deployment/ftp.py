@@ -39,22 +39,21 @@ class Ftp:
     def upload_file(self, local, remote, callback):
         self.connect()
 
-        if os.path.isfile(local):
-            with open(local, "rb") as file:
-                directory = remote
-                while True:
-                    try:
-                        self.ftp.storbinary("STOR " + remote, file, 8192, callback)
-                        return True
-                    except error_perm as e:
-                        if e.message.startswith("553"):  # directory not exists
-                            directory = os.path.dirname(directory)
-                            if directory == "/":
-                                return False
-                            self.create_directory(directory)
-                            continue
+        with open(local, "rb") as file:
+            directory = remote
+            while True:
+                try:
+                    self.ftp.storbinary("STOR " + remote, file, 8192, callback)
+                    break
+                except error_perm as e:
+                    if e.message.startswith("553"):  # directory not exists
+                        directory = os.path.dirname(directory)
+                        if directory == "/":
+                            raise e
+                        self.create_directory(directory)
+                        continue
 
-                        return False
+                    raise e
 
     def download_file_bytes(self, file):
         self.connect()
@@ -98,11 +97,9 @@ class Ftp:
 
         try:
             self.ftp.rmd(directory)
-            return True
         except error_perm as e:
             logging.error("Directory deletion failed, reason: " + e.message)
-
-        return False
+            raise e
 
     def list_directory_contents(self, directory, callback):
         self.connect()
