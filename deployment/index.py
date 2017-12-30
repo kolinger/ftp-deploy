@@ -86,8 +86,8 @@ class Index:
 
         local = self.config.local + self.FILE_NAME
         remote = self.config.remote + self.FILE_NAME
-        if self.ftp.upload_file(local, remote, None):
-            os.remove(local)
+        self.ftp.upload_file(local, remote, None)
+        os.remove(local)
 
     def close(self):
         if self.file is not None:
