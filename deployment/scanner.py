@@ -65,6 +65,7 @@ class Scanner:
     def format_ignored(self, ignored):
         ignored.append(Index.FILE_NAME)
         ignored.append(Index.BACKUP_FILE_NAME)
+        ignored.append("/.ftp-")
 
         formatted = []
         for pattern in ignored:
