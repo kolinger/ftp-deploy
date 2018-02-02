@@ -1,8 +1,9 @@
-import bz2
 from collections import OrderedDict
 import logging
 from multiprocessing import Lock
 import os
+
+import bz2
 
 from ftp import Ftp
 
@@ -10,6 +11,9 @@ from ftp import Ftp
 class Index:
     FILE_NAME = "/.deployment-index"
     BACKUP_FILE_NAME = "/.deployment-index.backup"
+
+    MODE_TIME = 'time'
+    MODE_SHA256 = 'sha256'
 
     file = None
     lock = Lock()
@@ -24,6 +28,7 @@ class Index:
 
     def read(self):
         remove = True
+        mode = self.MODE_SHA256
 
         if os.path.isfile(self.backup_path):
             with open(self.backup_path, "r") as file:
@@ -40,20 +45,31 @@ class Index:
                 contents = contents.decode("utf-8")
                 lines = contents.split("\n")
                 contents = OrderedDict()
+                first = True
                 for line in lines:
                     if line:
+                        if first:
+                            first = False
+                            try:
+                                if line.index("mode:") == 0:
+                                    line.split("mode:")
+                                    continue
+                            except ValueError:
+                                pass
+                            mode = self.MODE_TIME  # backward compatibility
+
                         parts = line.split(" ", 1)
 
                         if len(parts) != 2:
                             continue
 
-                        time = parts[0].strip()
+                        value = parts[0].strip()
                         path = parts[1].strip()
 
-                        if time == "None":
-                            time = None
+                        if value == "None":
+                            value = None
 
-                        contents[path] = time
+                        contents[path] = value
             except IOError:
                 pass
 
@@ -61,6 +77,7 @@ class Index:
             contents = {}
 
         return {
+            "mode": mode,
             "remove": remove,
             "contents": contents
         }

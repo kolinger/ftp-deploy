@@ -16,6 +16,7 @@ class Config:
     ignore = []
     purge = []
     file_log = False
+    block_size = 10485760  # 10 MiB
 
     def __init__(self):
         pass
@@ -66,6 +67,9 @@ class Config:
 
         if 'file_log' in data:
             self.file_log = data['file_log']
+
+        if 'block_size' in data:
+            self.block_size = data['block_size']
 
     def is_defined(self, key, dictionary, description=None):
         if key in dictionary:

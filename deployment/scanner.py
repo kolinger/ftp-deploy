@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import hashlib
 import logging
 import os
 
@@ -6,12 +7,11 @@ from index import Index
 
 
 class Scanner:
-    root = None
-    ignored = None
-
-    def __init__(self, root, ignored):
+    def __init__(self, config, root, ignored, mode):
+        self.config = config
         self.root = root
         self.ignored = self.format_ignored(ignored)
+        self.mode = mode
 
     def scan(self):
         result = {}
@@ -38,7 +38,14 @@ class Scanner:
                     if os.name == "nt":
                         path = path.replace("\\", "/")
 
-                    result[path[prefix:]] = str(int(os.path.getmtime(path)))
+                    if self.mode == Index.MODE_SHA256:
+                        value = self.calculate_sha256_checksum(path)
+                    elif self.mode == Index.MODE_TIME:
+                        value = self.get_modify_time(path)
+                    else:
+                        raise Exception("Unknown mode: " + self.mode)
+
+                    result[path[prefix:]] = value
 
                     directory = path
                     while True:
@@ -61,6 +68,16 @@ class Scanner:
         logging.info("Found " + str(len(ordered)) + " valid objects to take care of")
 
         return ordered
+
+    def get_modify_time(self, path):
+        return str(int(os.path.getmtime(path)))
+
+    def calculate_sha256_checksum(self, path):
+        hash = hashlib.sha256()
+        with open(path, "rb") as file:
+            for block in iter(lambda: file.read(self.config.block_size), b''):
+                hash.update(block)
+        return hash.hexdigest()
 
     def format_ignored(self, ignored):
         ignored.append(Index.FILE_NAME)
