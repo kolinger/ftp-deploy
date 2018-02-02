@@ -69,6 +69,9 @@ class Scanner:
             value = result[1]
             self.result[path[self.prefix:]] = value
 
+        pool.close()
+        pool.join()
+
         logging.info("Found " + str(total) + " objects")
 
         keys = self.result.keys()
