@@ -21,13 +21,11 @@ class Deployment:
 
     def deploy(self):
         result = self.index.read()
-        mode = result["mode"]
         remove = result["remove"]
         contents = result["contents"]
-        logging.info("Using " + mode + " mode")
 
         logging.info("Scanning...")
-        scanner = Scanner(self.config, self.config.local, self.config.ignore, mode)
+        scanner = Scanner(self.config, self.config.local, self.config.ignore)
         self.index.times = objects = scanner.scan()
 
         logging.info("Calculating changes...")

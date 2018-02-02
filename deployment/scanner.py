@@ -8,11 +8,10 @@ from index import Index
 
 
 class Scanner:
-    def __init__(self, config, root, ignored, mode):
+    def __init__(self, config, root, ignored):
         self.config = config
         self.root = root
         self.ignored = self.format_ignored(ignored)
-        self.mode = mode
         self.prefix = None
         self.result = {}
 
@@ -70,13 +69,7 @@ class Scanner:
         return ordered
 
     def process(self, path):
-        if self.mode == Index.MODE_SHA256:
-            value = self.calculate_sha256_checksum(path)
-        elif self.mode == Index.MODE_TIME:
-            value = self.get_modify_time(path)
-        else:
-            raise Exception("Unknown mode: " + self.mode)
-
+        value = self.calculate_sha256_checksum(path)
         self.result[path[self.prefix:]] = value
 
     def get_modify_time(self, path):
