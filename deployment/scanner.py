@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import hashlib
 import logging
+from multiprocessing.pool import ThreadPool
 import os
 
 from index import Index
@@ -12,24 +13,27 @@ class Scanner:
         self.root = root
         self.ignored = self.format_ignored(ignored)
         self.mode = mode
+        self.prefix = None
+        self.result = {}
 
     def scan(self):
-        result = {}
         total = 0
 
         root = self.root
         if os.name == "nt":
             root = root.replace("\\", "/")
-        prefix = len(root)
+        self.prefix = prefix = len(root)
+
+        pool = ThreadPool(processes=self.config.threads)
 
         for folder, subs, files in os.walk(root):
-            if folder not in result and folder != root:
+            if folder not in self.result and folder != root:
                 pattern = self.is_ignored(folder)
                 if not pattern or pattern == folder:
                     directory = folder[prefix:]
                     if os.name == "nt":
                         directory = directory.replace("\\", "/")
-                    result[directory] = None
+                    self.result[directory] = None
 
             for file in files:
                 total += 1
@@ -38,36 +42,42 @@ class Scanner:
                     if os.name == "nt":
                         path = path.replace("\\", "/")
 
-                    if self.mode == Index.MODE_SHA256:
-                        value = self.calculate_sha256_checksum(path)
-                    elif self.mode == Index.MODE_TIME:
-                        value = self.get_modify_time(path)
-                    else:
-                        raise Exception("Unknown mode: " + self.mode)
-
-                    result[path[prefix:]] = value
+                        pool.apply_async(self.process, args=(path,))
 
                     directory = path
                     while True:
                         directory = os.path.dirname(directory)
-                        if directory in result:
+                        if directory in self.result:
                             break
                         if directory == root:
                             break
-                        result[directory[prefix:]] = None
+                        self.result[directory[prefix:]] = None
+
+        pool.close()
+        pool.join()
 
         logging.info("Found " + str(total) + " objects")
 
-        keys = result.keys()
+        keys = self.result.keys()
         keys.sort()
 
         ordered = OrderedDict()
         for key in keys:
-            ordered[key] = result[key]
+            ordered[key] = self.result[key]
 
         logging.info("Found " + str(len(ordered)) + " valid objects to take care of")
 
         return ordered
+
+    def process(self, path):
+        if self.mode == Index.MODE_SHA256:
+            value = self.calculate_sha256_checksum(path)
+        elif self.mode == Index.MODE_TIME:
+            value = self.get_modify_time(path)
+        else:
+            raise Exception("Unknown mode: " + self.mode)
+
+        self.result[path[self.prefix:]] = value
 
     def get_modify_time(self, path):
         return str(int(os.path.getmtime(path)))
