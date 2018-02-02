@@ -1,10 +1,19 @@
 from collections import OrderedDict
 import hashlib
 import logging
-from multiprocessing.pool import ThreadPool
+from multiprocessing import Pool
 import os
 
 from index import Index
+
+
+def process(path, block_size):
+    hash = hashlib.sha256()
+    with open(path, "rb") as file:
+        for block in iter(lambda: file.read(block_size), b''):
+            hash.update(block)
+    value = hash.hexdigest()
+    return [path, value]
 
 
 class Scanner:
@@ -23,8 +32,9 @@ class Scanner:
             root = root.replace("\\", "/")
         self.prefix = prefix = len(root)
 
-        pool = ThreadPool(processes=self.config.threads)
+        pool = Pool(processes=self.config.threads)
 
+        waiting_room = []
         for folder, subs, files in os.walk(root):
             if folder not in self.result and folder != root:
                 pattern = self.is_ignored(folder)
@@ -41,7 +51,8 @@ class Scanner:
                     if os.name == "nt":
                         path = path.replace("\\", "/")
 
-                        pool.apply_async(self.process, args=(path,))
+                    result = pool.apply_async(process, args=(path, self.config.block_size))
+                    waiting_room.append(result)
 
                     directory = path
                     while True:
@@ -52,8 +63,11 @@ class Scanner:
                             break
                         self.result[directory[prefix:]] = None
 
-        pool.close()
-        pool.join()
+        for result in waiting_room:
+            result = result.get(3600)
+            path = result[0]
+            value = result[1]
+            self.result[path[self.prefix:]] = value
 
         logging.info("Found " + str(total) + " objects")
 
@@ -67,20 +81,6 @@ class Scanner:
         logging.info("Found " + str(len(ordered)) + " valid objects to take care of")
 
         return ordered
-
-    def process(self, path):
-        value = self.calculate_sha256_checksum(path)
-        self.result[path[self.prefix:]] = value
-
-    def get_modify_time(self, path):
-        return str(int(os.path.getmtime(path)))
-
-    def calculate_sha256_checksum(self, path):
-        hash = hashlib.sha256()
-        with open(path, "rb") as file:
-            for block in iter(lambda: file.read(self.config.block_size), b''):
-                hash.update(block)
-        return hash.hexdigest()
 
     def format_ignored(self, ignored):
         ignored.append(Index.FILE_NAME)
