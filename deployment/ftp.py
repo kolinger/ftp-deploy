@@ -16,6 +16,7 @@ class Ftp:
                 self.ftp = FTP_TLS(self.config.host, self.config.user, self.config.password)
             else:
                 self.ftp = FTP(self.config.host, self.config.user, self.config.password)
+            self.ftp.set_pasv(True)
 
         return self.ftp
 
