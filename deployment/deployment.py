@@ -93,7 +93,7 @@ class Deployment:
             logging.info("Purging...")
 
             to_delete = []
-            suffix = str(int(time.time()))
+            suffix = str(int(time.time())) + ".tmp"
             for path in self.config.purge:
                 current = self.config.remote + path
                 try:
