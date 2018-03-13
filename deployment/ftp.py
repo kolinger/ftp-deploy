@@ -45,7 +45,7 @@ class Ftp:
                     self.ftp.storbinary("STOR " + remote, file, 8192, callback)
                     break
                 except error_perm as e:
-                    if e.message.startswith("553"):  # directory not exists
+                    if e.message.startswith("553") or e.message.startswith("550"):  # directory not exists
                         directory = os.path.dirname(directory)
                         if directory == "/":
                             raise e
