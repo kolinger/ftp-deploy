@@ -2,6 +2,7 @@ from Queue import Queue
 from ftplib import error_perm
 import logging
 import os
+import re
 import time
 
 from counter import Counter
@@ -93,8 +94,16 @@ class Deployment:
             logging.info("Purging...")
 
             to_delete = []
+            base_folders = {}
             suffix = str(int(time.time())) + ".tmp"
             for path in self.config.purge:
+                name = os.path.basename(path)
+                base = os.path.dirname(path)
+                if base not in base_folders:
+                    base_folders[base] = []
+                if name not in base_folders[base]:
+                    base_folders[base].append(name)
+
                 current = self.config.remote + path
                 try:
                     self.ftp.delete_file(current)
@@ -106,6 +115,13 @@ class Deployment:
                         self.ftp.create_directory(current)
                     except error_perm:
                         pass
+
+            for base, names in base_folders.iteritems():
+                objects = self.ftp.list_directory_contents(base)
+                for object in objects:
+                    for name in names:
+                        if re.search("^" + name + "_[0-9]+\.tmp$", object):
+                            to_delete.append(base + "/" + object)
 
             for path in to_delete:
                 try:

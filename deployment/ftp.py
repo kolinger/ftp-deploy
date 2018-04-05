@@ -84,11 +84,7 @@ class Ftp:
                     self.ftp.rmd(directory)
                 except error_perm as e:
                     if e.message.startswith("550"):  # directory not exists
-                        directory = os.path.dirname(directory)
-                        if directory == "/":
-                            return
-                        self.create_directory(directory)
-                        continue
+                        return
                     raise e
 
     def delete_directory(self, directory):
@@ -100,10 +96,25 @@ class Ftp:
             logging.error("Directory deletion failed, reason: " + e.message)
             raise e
 
-    def list_directory_contents(self, directory, callback):
+    def list_directory_contents(self, directory):
         self.connect()
 
         self.ftp.cwd(directory)
+
+        objects = []
+        for object in self.ftp.nlst():
+            if object == "." or object == "..":
+                continue
+
+            objects.append(object)
+
+        return objects
+
+    def list_directory_contents_recursive(self, directory, callback):
+        self.connect()
+
+        self.ftp.cwd(directory)
+
         self._list_directory_contents_recursive(callback)
 
     def _list_directory_contents_recursive(self, callback):
