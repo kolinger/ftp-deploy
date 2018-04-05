@@ -97,14 +97,15 @@ class Deployment:
             base_folders = {}
             suffix = str(int(time.time())) + ".tmp"
             for path in self.config.purge:
-                name = os.path.basename(path)
-                base = os.path.dirname(path)
+                current = self.config.remote + path
+
+                name = os.path.basename(current)
+                base = os.path.dirname(current)
                 if base not in base_folders:
                     base_folders[base] = []
                 if name not in base_folders[base]:
                     base_folders[base].append(name)
 
-                current = self.config.remote + path
                 try:
                     self.ftp.delete_file(current)
                 except error_perm:
