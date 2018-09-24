@@ -1,10 +1,10 @@
-from Queue import Empty
 import logging
 import os
+from queue import Empty
 from threading import Thread
 from time import time
 
-from ftp import Ftp
+from deployment.ftp import Ftp
 
 
 class Worker(Thread):
@@ -84,7 +84,7 @@ class Worker(Thread):
                         })
                     else:
                         logging.exception(e)
-                        self.failed.put(self.mode + " " + path + " (" + str(e).decode("ibm852") + ")")
+                        self.failed.put(self.mode + " " + path + " (" + str(e) + ")")
 
                     self.ftp.close()
 

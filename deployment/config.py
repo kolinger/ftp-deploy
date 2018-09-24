@@ -1,6 +1,8 @@
 import json
 import os
 
+from deployment.exceptions import ConfigException
+
 
 class Config:
     name = None
@@ -78,7 +80,3 @@ class Config:
             if description is None:
                 description = key
             raise ConfigException(description + " is not defined")
-
-
-class ConfigException(Exception):
-    pass

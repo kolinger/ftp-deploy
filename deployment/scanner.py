@@ -4,7 +4,7 @@ import logging
 from multiprocessing import Pool
 import os
 
-from index import Index
+from deployment.index import Index
 
 
 def process(path, block_size):
@@ -74,7 +74,7 @@ class Scanner:
 
         logging.info("Found " + str(total) + " objects")
 
-        keys = self.result.keys()
+        keys = list(self.result.keys())
         keys.sort()
 
         ordered = OrderedDict()

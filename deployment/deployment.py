@@ -1,15 +1,15 @@
-from Queue import Queue
 from ftplib import error_perm
 import logging
 import os
+from queue import Queue
 import re
 import time
 
-from counter import Counter
-from ftp import Ftp
-from index import Index
-from scanner import Scanner
-from worker import Worker
+from deployment.counter import Counter
+from deployment.ftp import Ftp
+from deployment.index import Index
+from deployment.scanner import Scanner
+from deployment.worker import Worker
 
 
 class Deployment:
@@ -117,7 +117,7 @@ class Deployment:
                     except error_perm:
                         pass
 
-            for base, names in base_folders.iteritems():
+            for base, names in base_folders.items():
                 objects = self.ftp.list_directory_contents(base)
                 for object in objects:
                     for name in names:
@@ -135,7 +135,7 @@ class Deployment:
 
         if not self.failed.empty():
             logging.fatal("FAILED TO PROCESS FOLLOWING OBJECTS")
-            for object in list(self.failed.queue):
+            for object in iter(self.failed.get, None):
                 logging.fatal("failed to " + object)
 
     def process_queue(self, queue, mode):

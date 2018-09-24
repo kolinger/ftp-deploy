@@ -2,19 +2,15 @@
 
 import logging
 from logging import FileHandler, StreamHandler
-from multiprocessing import freeze_support
 import os
 import sys
 import timeit
 
 from deployment.config import Config, ConfigException
 from deployment.deployment import Deployment
+from deployment.exceptions import MessageException
 
 if __name__ == '__main__':
-    reload(sys)
-    sys.setdefaultencoding("utf8")
-    freeze_support()
-
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
@@ -64,8 +60,8 @@ if __name__ == '__main__':
 
         sys.exit(0)
 
-    except ConfigException as e:
-        logging.error("Configuration error: " + e.message)
+    except MessageException as e:
+        logging.error(str(e))
         sys.exit(1)
     finally:
         if deployment is not None:

@@ -1,11 +1,11 @@
+import bz2
 from collections import OrderedDict
 import logging
 from multiprocessing import Lock
 import os
 
-import bz2
-
-from ftp import Ftp
+from deployment.exceptions import DownloadFailedException
+from deployment.ftp import Ftp
 
 
 class Index:
@@ -33,6 +33,8 @@ class Index:
         else:
             logging.info("Downloading index...")
             contents = self.ftp.download_file_bytes(self.config.remote + self.FILE_NAME)
+            if contents is False:
+                raise DownloadFailedException("Index downloading failed")
             logging.info("Index downloaded")
 
         if contents:
@@ -78,7 +80,8 @@ class Index:
                 os.rename(self.file_path, self.backup_path)
             self.file = bz2.BZ2File(self.file_path, "w")
 
-        self.file.write(str(time) + " " + path + "\n")
+        line = str(time) + " " + path + "\n"
+        self.file.write(line.encode("utf-8"))
 
         self.lock.release()
 

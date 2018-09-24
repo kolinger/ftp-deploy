@@ -3,6 +3,8 @@ from io import BytesIO
 import logging
 import os
 
+from deployment.config import ConfigException
+
 
 class Ftp:
     ftp = None
@@ -12,10 +14,14 @@ class Ftp:
 
     def connect(self):
         if not self.ftp:
+            if not self.config.host:
+                raise ConfigException("host is missing")
+
             if self.config.secure:
                 self.ftp = FTP_TLS(self.config.host, self.config.user, self.config.password)
             else:
                 self.ftp = FTP(self.config.host, self.config.user, self.config.password)
+
             self.ftp.set_pasv(True)
 
         return self.ftp
@@ -31,7 +37,8 @@ class Ftp:
         try:
             self.ftp.mkd(directory)
         except error_perm as e:
-            if e.message.startswith("550"):
+            message = str(e)
+            if message.startswith("550"):
                 return  # already exists - ignore
             raise e
 
@@ -45,7 +52,8 @@ class Ftp:
                     self.ftp.storbinary("STOR " + remote, file, 8192, callback)
                     break
                 except error_perm as e:
-                    if e.message.startswith("553") or e.message.startswith("550"):  # directory not exists
+                    message = str(e)
+                    if message.startswith("553") or message.startswith("550"):  # directory not exists
                         directory = os.path.dirname(directory)
                         if directory == "/":
                             raise e
@@ -62,10 +70,11 @@ class Ftp:
             self.ftp.retrbinary("RETR " + file, buffer.write)
             return buffer.getvalue()
         except error_perm as e:
-            if e.message.startswith("550"):
+            message = str(e)
+            if message.startswith("550"):
                 return None  # not exists - ignore
-            logging.error("File download failed, reason: " + e.message)
-        return None
+            logging.error("File download failed, reason: " + message)
+        return False
 
     def delete_file(self, file):
         self.connect()
@@ -83,7 +92,8 @@ class Ftp:
                 try:
                     self.ftp.rmd(directory)
                 except error_perm as e:
-                    if e.message.startswith("550"):  # directory not exists
+                    message = str(e)
+                    if message.startswith("550"):  # directory not exists
                         return
                     raise e
 
@@ -93,7 +103,8 @@ class Ftp:
         try:
             self.ftp.rmd(directory)
         except error_perm as e:
-            logging.error("Directory deletion failed, reason: " + e.message)
+            message = str(e)
+            logging.error("Directory deletion failed, reason: " + message)
             raise e
 
     def list_directory_contents(self, directory):
@@ -143,7 +154,8 @@ class Ftp:
                 self.ftp.cwd(target)
                 self._delete_directory_contents_recursive()
             except error_perm as e:
-                if "No such file or directory" in e.message:
+                message = str(e)
+                if "No such file or directory" in message:
                     return
                 raise e
 
