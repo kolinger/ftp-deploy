@@ -17,7 +17,7 @@ class Worker(Thread):
     size = None
     written = 0
     percent = None
-    next_percent_update = None
+    next_percent_update = 0
 
     def __init__(self, queue, config, counter, index, failed, mode):
         super(Worker, self).__init__()
@@ -104,7 +104,7 @@ class Worker(Thread):
             self.size = os.path.getsize(local)
             if self.size > (1024 * 1024):
                 self.percent = 0
-                self.next_percent_update = None
+                self.next_percent_update = 0
                 callback = self.upload_progress
             else:
                 callback = None
