@@ -1,19 +1,14 @@
 from collections import OrderedDict
-import hashlib
 import logging
 from multiprocessing import Pool
 import os
 
+from deployment.checksum import sha256_checksum
 from deployment.index import Index
 
 
 def process(path, block_size):
-    hash = hashlib.sha256()
-    with open(path, "rb") as file:
-        for block in iter(lambda: file.read(block_size), b''):
-            hash.update(block)
-    value = hash.hexdigest()
-    return [path, value]
+    return [path, sha256_checksum(path, block_size)]
 
 
 class Scanner:

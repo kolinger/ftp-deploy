@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 
+from deployment.checksum import sha256_checksum
 from deployment.process import Process
 
 
@@ -22,21 +23,15 @@ class Composer:
         os.makedirs(temporary, exist_ok=True)
 
         if os.path.exists(lock):
-            current_time = int(os.path.getmtime(lock))
-            lock_time = temporary + "/lock.time"
-            if os.path.exists(lock_time):
-                with open(lock_time, "r") as file:
-                    try:
-                        time = int(file.read())
-                    except ValueError:
-                        time = 0
-                if current_time == time:
+            previous_lock = temporary + "/composer.lock"
+            if os.path.exists(previous_lock):
+                checksum = sha256_checksum(lock)
+                previous_checksum = sha256_checksum(previous_lock)
+                if checksum == previous_checksum:
                     logging.info("Composer is up to date, skipping")
                     return "/" + prefix + "/vendor", temporary + "/vendor"
 
             shutil.copy(lock, temporary + "/composer.lock")
-            with open(lock_time, "w") as file:
-                file.write(str(current_time))
 
         if not os.path.exists(configuration):
             logging.error("Composer configuration " + configuration + " not found")
