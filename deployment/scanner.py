@@ -17,9 +17,9 @@ def process(path, block_size):
 
 
 class Scanner:
-    def __init__(self, config, root, ignored):
+    def __init__(self, config, roots, ignored):
         self.config = config
-        self.root = root
+        self.roots = roots
         self.ignored = self.format_ignored(ignored)
         self.prefix = None
         self.result = {}
@@ -27,47 +27,50 @@ class Scanner:
     def scan(self):
         total = 0
 
-        root = self.root
-        if os.name == "nt":
-            root = root.replace("\\", "/")
-        self.prefix = prefix = len(root)
-
         pool = Pool(processes=self.config.threads)
 
-        waiting_room = []
-        for folder, subs, files in os.walk(root):
-            if folder not in self.result and folder != root:
-                pattern = self.is_ignored(folder)
-                if not pattern or pattern == folder:
-                    directory = folder[prefix:]
-                    if os.name == "nt":
-                        directory = directory.replace("\\", "/")
-                    self.result[directory] = None
+        for root in self.roots:
+            if os.name == "nt":
+                root = root.replace("\\", "/")
 
-            for file in files:
-                total += 1
-                path = os.path.join(folder, file)
-                if not self.is_ignored(path):
-                    if os.name == "nt":
-                        path = path.replace("\\", "/")
+            self.prefix = prefix = len(root)
+            if ".ftp-deploy" in root:
+                self.prefix = prefix = 0
 
-                    result = pool.apply_async(process, args=(path, self.config.block_size))
-                    waiting_room.append(result)
+            waiting_room = []
+            for folder, subs, files in os.walk(root):
+                if folder not in self.result and folder != root:
+                    pattern = self.is_ignored(folder)
+                    if not pattern or pattern == folder:
+                        directory = folder[prefix:]
+                        if os.name == "nt":
+                            directory = directory.replace("\\", "/")
+                        self.result[directory] = None
 
-                    directory = path
-                    while True:
-                        directory = os.path.dirname(directory)
-                        if directory in self.result:
-                            break
-                        if directory == root:
-                            break
-                        self.result[directory[prefix:]] = None
+                for file in files:
+                    total += 1
+                    path = os.path.join(folder, file)
+                    if not self.is_ignored(path):
+                        if os.name == "nt":
+                            path = path.replace("\\", "/")
 
-        for result in waiting_room:
-            result = result.get(3600)
-            path = result[0]
-            value = result[1]
-            self.result[path[self.prefix:]] = value
+                        result = pool.apply_async(process, args=(path, self.config.block_size))
+                        waiting_room.append(result)
+
+                        directory = path
+                        while True:
+                            directory = os.path.dirname(directory)
+                            if directory in self.result:
+                                break
+                            if directory == root:
+                                break
+                            self.result[directory[prefix:]] = None
+
+            for result in waiting_room:
+                result = result.get(3600)
+                path = result[0]
+                value = result[1]
+                self.result[path[self.prefix:]] = value
 
         pool.close()
         pool.join()
@@ -92,11 +95,14 @@ class Scanner:
 
         formatted = []
         for pattern in ignored:
-            if pattern.startswith("/"):
-                formatted.append(self.root + pattern)
             if os.name == "nt":
                 pattern = pattern.replace("/", "\\")
-            formatted.append(pattern)
+
+            if pattern.startswith("/"):
+                for root in self.roots:
+                    formatted.append(root + pattern)
+            else:
+                formatted.append(pattern)
 
         return formatted
 

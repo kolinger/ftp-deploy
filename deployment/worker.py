@@ -19,7 +19,7 @@ class Worker(Thread):
     percent = None
     next_percent_update = 0
 
-    def __init__(self, queue, config, counter, index, failed, mode):
+    def __init__(self, queue, config, counter, index, failed, mode, mapping):
         super(Worker, self).__init__()
         self.daemon = True
 
@@ -29,6 +29,7 @@ class Worker(Thread):
         self.config = config
         self.counter = counter
         self.index = index
+        self.mapping = mapping
         self.ftp = Ftp(self.config)
 
     def run(self):
@@ -42,36 +43,41 @@ class Worker(Thread):
                     path = value
                     retry = 0
 
+                local = path
+                remote = self.apply_mapping(path)
+                if local == remote:
+                    local = self.config.local + local
+
                 try:
-                    if path:
+                    if local and remote:
                         if self.mode == self.MODE_UPLOAD:
                             if retry > 0:
                                 counter = str(retry) + " of " + str(self.config.retry_count)
-                                self.prefix = "Retrying to upload (" + counter + ") " + path
+                                self.prefix = "Retrying to upload (" + counter + ") " + remote
                                 logging.info(self.prefix)
                             else:
-                                self.prefix = "Uploading (" + self.counter.counter() + ") " + path
+                                self.prefix = "Uploading (" + self.counter.counter() + ") " + remote
                                 logging.info(self.prefix)
 
-                            self.upload(path)
-                            self.index.write(path)
+                            self.upload(local, remote)
+                            self.index.write(local)
 
                             if retry > 0:
                                 counter = str(retry) + " of " + str(self.config.retry_count)
-                                logging.info("Repeated upload (" + counter + ") " + path + " WAS SUCCESSFUL")
+                                logging.info("Repeated upload (" + counter + ") " + remote + " WAS SUCCESSFUL")
 
                         elif self.mode == self.MODE_REMOVE:
                             if retry > 0:
                                 counter = str(retry) + " of " + str(self.config.retry_count)
-                                logging.info("Retrying to remove (" + counter + ") " + path)
+                                logging.info("Retrying to remove (" + counter + ") " + remote)
                             else:
-                                logging.info("Removing (" + self.counter.counter() + ") " + path)
+                                logging.info("Removing (" + self.counter.counter() + ") " + remote)
 
-                            self.ftp.delete_file_or_directory(path)
+                            self.ftp.delete_file_or_directory(remote)
 
                             if retry > 0:
                                 counter = str(retry) + " of " + str(self.config.retry_count)
-                                logging.info("Repeated remove (" + counter + ") " + path + " WAS SUCCESSFUL")
+                                logging.info("Repeated remove (" + counter + ") " + remote + " WAS SUCCESSFUL")
 
                     self.queue.task_done()
                 except (KeyboardInterrupt, SystemExit):
@@ -79,12 +85,12 @@ class Worker(Thread):
                 except Exception as e:
                     if retry < self.config.retry_count:
                         self.queue.put({
-                            "path": path,
+                            "path": remote,
                             "retry": retry + 1,
                         })
                     else:
                         logging.exception(e)
-                        self.failed.put(self.mode + " " + path + " (" + str(e) + ")")
+                        self.failed.put(self.mode + " " + remote + " (" + str(e) + ")")
 
                     self.ftp.close()
 
@@ -94,9 +100,8 @@ class Worker(Thread):
 
         self.ftp.close()
 
-    def upload(self, path):
-        local = self.config.local + path
-        remote = self.config.remote + path
+    def upload(self, local, remote):
+        remote = self.config.remote + remote
 
         if os.path.isdir(local):
             self.ftp.create_directory(remote)
@@ -121,6 +126,12 @@ class Worker(Thread):
             if self.next_percent_update < time():
                 logging.info(self.prefix + " [" + str(self.percent) + "%]")
             self.next_percent_update = time() + 2
+
+    def apply_mapping(self, path):
+        for mapped, original in self.mapping.items():
+            if path.startswith(original) or path == original:
+                path = path.replace(original, mapped)
+        return path
 
     def stop(self):
         self.running = False

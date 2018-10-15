@@ -14,7 +14,7 @@ class Index:
 
     file = None
     lock = Lock()
-    times = {}
+    hashes = {}
 
     def __init__(self, config):
         self.config = config
@@ -71,16 +71,16 @@ class Index:
     def write(self, path):
         self.lock.acquire()
 
-        time = None
-        if path in self.times:
-            time = self.times[path]
+        value = None
+        if path in self.hashes:
+            value = self.hashes[path]
 
         if not self.file:
             if os.path.isfile(self.file_path) and not os.path.isfile(self.backup_path):
                 os.rename(self.file_path, self.backup_path)
             self.file = bz2.BZ2File(self.file_path, "w")
 
-        line = str(time) + " " + path + "\n"
+        line = str(value) + " " + path + "\n"
         self.file.write(line.encode("utf-8"))
 
         self.lock.release()

@@ -1,10 +1,12 @@
 from ftplib import error_perm
+import json
 import logging
 import os
 from queue import Queue
 import re
 import time
 
+from deployment.composer import Composer
 from deployment.counter import Counter
 from deployment.ftp import Ftp
 from deployment.index import Index
@@ -13,6 +15,8 @@ from deployment.worker import Worker
 
 
 class Deployment:
+    mapping = {}
+
     def __init__(self, config):
         self.config = config
         self.counter = Counter()
@@ -24,10 +28,18 @@ class Deployment:
         result = self.index.read()
         remove = result["remove"]
         contents = result["contents"]
+        roots = [self.config.local]
+
+        if self.config.composer:
+            composer = Composer(self.config)
+            alias, directory = composer.process()
+            roots.append(directory)
+            self.mapping[alias] = directory.replace(self.config.local, "")
+            self.config.ignore.append(alias)
 
         logging.info("Scanning...")
-        scanner = Scanner(self.config, self.config.local, self.config.ignore)
-        self.index.times = objects = scanner.scan()
+        scanner = Scanner(self.config, roots, self.config.ignore)
+        self.index.hashes = objects = scanner.scan()
 
         logging.info("Calculating changes...")
 
@@ -141,7 +153,7 @@ class Deployment:
     def process_queue(self, queue, mode):
         workers = []
         for number in range(self.config.threads):
-            worker = Worker(queue, self.config, self.counter, self.index, self.failed, mode)
+            worker = Worker(queue, self.config, self.counter, self.index, self.failed, mode, self.mapping)
             worker.start()
             workers.append(worker)
 

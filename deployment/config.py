@@ -19,6 +19,7 @@ class Config:
     purge = []
     file_log = False
     block_size = 10485760  # 10 MiB
+    composer = None
 
     def __init__(self):
         pass
@@ -29,49 +30,52 @@ class Config:
         with open(file) as file:
             data = json.load(file)
 
-        if self.is_defined('local', data):
-            self.local = os.path.realpath(data['local'])
+        if self.is_defined("local", data):
+            self.local = os.path.realpath(data["local"])
 
-        if self.is_defined('connection', data):
-            inner = data['connection']
+        if self.is_defined("connection", data):
+            inner = data["connection"]
 
-            if 'threads' in inner:
-                self.threads = inner['threads']
+            if "threads" in inner:
+                self.threads = inner["threads"]
                 if self.threads < 1:
                     self.threads = 1
 
-            if 'secure' in inner:
-                self.secure = inner['secure']
+            if "secure" in inner:
+                self.secure = inner["secure"]
 
-            if self.is_defined('host', inner, 'connection.host'):
-                self.host = inner['host']
+            if self.is_defined("host", inner, "connection.host"):
+                self.host = inner["host"]
 
-            if 'port' in inner:
-                self.port = inner['port']
+            if "port" in inner:
+                self.port = inner["port"]
 
-            if self.is_defined('user', inner, 'connection.user'):
-                self.user = inner['user']
+            if self.is_defined("user", inner, "connection.user"):
+                self.user = inner["user"]
 
-            if self.is_defined('password', inner, 'connection.password'):
-                self.password = inner['password']
+            if self.is_defined("password", inner, "connection.password"):
+                self.password = inner["password"]
 
-            if self.is_defined('root', inner, 'connection.root'):
-                self.remote = inner['root']
+            if self.is_defined("root", inner, "connection.root"):
+                self.remote = inner["root"]
 
-        if 'retry_count' in data:
-            self.retry_count = data['retry_count']
+        if "retry_count" in data:
+            self.retry_count = data["retry_count"]
 
-        if 'ignore' in data:
-            self.ignore = data['ignore']
+        if "ignore" in data:
+            self.ignore = data["ignore"]
 
-        if 'purge' in data:
-            self.purge = data['purge']
+        if "purge" in data:
+            self.purge = data["purge"]
 
-        if 'file_log' in data:
-            self.file_log = data['file_log']
+        if "file_log" in data:
+            self.file_log = data["file_log"]
 
-        if 'block_size' in data:
-            self.block_size = data['block_size']
+        if "block_size" in data:
+            self.block_size = data["block_size"]
+
+        if "composer" in data:
+            self.composer = data["composer"].lstrip("/")
 
     def is_defined(self, key, dictionary, description=None):
         if key in dictionary:
