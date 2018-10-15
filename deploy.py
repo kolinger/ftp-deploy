@@ -6,7 +6,7 @@ import os
 import sys
 import timeit
 
-from deployment.config import Config, ConfigException
+from deployment.config import Config
 from deployment.deployment import Deployment
 from deployment.exceptions import MessageException
 
