@@ -32,13 +32,13 @@ class Deployment:
 
         if self.config.composer:
             composer = Composer(self.config)
-            alias, directory = composer.process()
-            roots.append(directory)
-            self.mapping[alias] = directory.replace(self.config.local, "")
-            self.config.ignore.append(alias)
+            remote, local = composer.process()
+            roots.append(local.replace(remote, ""))
+            self.mapping[remote] = local
+            self.config.ignore.append(remote)
 
         logging.info("Scanning...")
-        scanner = Scanner(self.config, roots, self.config.ignore)
+        scanner = Scanner(self.config, roots, self.config.ignore, self.mapping)
         self.index.hashes = objects = scanner.scan()
 
         logging.info("Calculating changes...")

@@ -6,7 +6,6 @@ from deployment.process import Process
 
 
 class Composer:
-
     def __init__(self, config):
         self.config = config
 
@@ -14,10 +13,11 @@ class Composer:
         logging.info("Processing composer")
 
         root = self.config.local.rstrip("/")
+        prefix = os.path.dirname(self.config.composer)
         configuration = root + "/" + self.config.composer
         lock = configuration.replace(".json", ".lock")
 
-        temporary = root + "/../.ftp-deploy/" + os.path.basename(root) + "/composer"
+        temporary = root + "/../.ftp-deploy/" + os.path.basename(root) + "/" + prefix
         temporary = os.path.realpath(temporary)
         os.makedirs(temporary, exist_ok=True)
 
@@ -32,7 +32,7 @@ class Composer:
                         time = 0
                 if current_time == time:
                     logging.info("Composer is up to date, skipping")
-                    return self.report(temporary)
+                    return "/" + prefix + "/vendor", temporary + "/vendor"
 
             shutil.copy(lock, temporary + "/composer.lock")
             with open(lock_time, "w") as file:
@@ -61,10 +61,4 @@ class Composer:
             logging.error("Composer failed with output: " + process.read())
             exit(1)
 
-        return self.report(temporary)
-
-    def report(self, temporary):
-        return (
-            "/" + os.path.dirname(self.config.composer) + "/vendor",
-            temporary + "/vendor",
-        )
+        return "/" + prefix + "/vendor", temporary + "/vendor"

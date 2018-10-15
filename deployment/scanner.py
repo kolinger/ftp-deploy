@@ -17,10 +17,10 @@ def process(path, block_size):
 
 
 class Scanner:
-    def __init__(self, config, roots, ignored):
+    def __init__(self, config, roots, ignored, mapping):
         self.config = config
         self.roots = roots
-        self.ignored = self.format_ignored(ignored)
+        self.ignored = self.format_ignored(ignored, mapping)
         self.prefix = None
         self.result = {}
 
@@ -34,8 +34,6 @@ class Scanner:
                 root = root.replace("\\", "/")
 
             self.prefix = prefix = len(root)
-            if ".ftp-deploy" in root:
-                self.prefix = prefix = 0
 
             waiting_room = []
             for folder, subs, files in os.walk(root):
@@ -88,7 +86,7 @@ class Scanner:
 
         return ordered
 
-    def format_ignored(self, ignored):
+    def format_ignored(self, ignored, mapping):
         ignored.append(Index.FILE_NAME)
         ignored.append(Index.BACKUP_FILE_NAME)
         ignored.append("/.ftp-")
@@ -98,9 +96,15 @@ class Scanner:
             if os.name == "nt":
                 pattern = pattern.replace("/", "\\")
 
-            if pattern.startswith("/"):
+            if pattern in mapping:
+                for root in self.roots:
+                    if not mapping[pattern].startswith(root):
+                        formatted.append(root + pattern)
+
+            elif pattern.startswith("/"):
                 for root in self.roots:
                     formatted.append(root + pattern)
+
             else:
                 formatted.append(pattern)
 
