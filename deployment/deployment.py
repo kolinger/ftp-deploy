@@ -1,7 +1,7 @@
 from ftplib import error_perm
-import json
 import logging
 import os
+import queue
 from queue import Queue
 import re
 import time
@@ -147,8 +147,12 @@ class Deployment:
 
         if not self.failed.empty():
             logging.fatal("FAILED TO PROCESS FOLLOWING OBJECTS")
-            for object in iter(self.failed.get, None):
-                logging.fatal("failed to " + object)
+            while True:
+                try:
+                    object = self.failed.get_nowait()
+                    logging.fatal("failed to " + object)
+                except queue.Empty:
+                    break
 
     def process_queue(self, queue, mode):
         workers = []
