@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 from deployment.exceptions import ConfigException
@@ -76,6 +77,15 @@ class Config:
 
         if "composer" in data:
             self.composer = data["composer"].lstrip("/")
+
+        if self.composer:
+            for index, value in enumerate(self.ignore):
+                if value.startswith(".ftp-"):
+                    logging.warning(
+                        "Replacing ignored path " + value + " with /" + value +
+                        ", this will break composer otherwise"
+                    )
+                    self.ignore[index] = "/" + value
 
     def is_defined(self, key, dictionary, description=None):
         if key in dictionary:
