@@ -67,7 +67,7 @@ class Worker(Thread):
                             else:
                                 logging.info("Removing (" + self.counter.counter() + ") " + path)
 
-                            self.ftp.delete_file_or_directory(path)
+                            self.ftp.delete_file_or_directory(self.config.remote + path)
 
                             if retry > 0:
                                 counter = str(retry) + " of " + str(self.config.retry_count)
