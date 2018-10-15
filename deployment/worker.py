@@ -96,9 +96,9 @@ class Worker(Thread):
 
     def upload(self, remote):
         local = self.apply_mapping(remote)
-        remote = self.config.remote + remote
         if local == remote:
             local = self.config.local + local
+        remote = self.config.remote + remote
 
         if os.path.isdir(local):
             self.ftp.create_directory(remote)
@@ -111,6 +111,8 @@ class Worker(Thread):
             else:
                 callback = None
             self.ftp.upload_file(local, remote, callback)
+        else:
+            raise Exception(local + " doesn't exist!")
 
     def upload_progress(self, block):
         self.written += len(block)
