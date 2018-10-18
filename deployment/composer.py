@@ -19,7 +19,7 @@ class Composer:
         lock = configuration.replace(".json", ".lock")
 
         temporary = root + "/../.ftp-deploy/" + os.path.basename(root) + "/" + prefix
-        temporary = os.path.realpath(temporary)
+        temporary = os.path.realpath(temporary).replace("\\", "/")
         os.makedirs(temporary, exist_ok=True)
 
         if os.path.exists(lock):

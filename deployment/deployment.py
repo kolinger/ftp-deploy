@@ -30,6 +30,10 @@ class Deployment:
         contents = result["contents"]
         roots = [self.config.local]
 
+        if os.name == "nt":
+            for index, value in enumerate(roots):
+                roots[index] = value.replace("\\", "/")
+
         if self.config.composer:
             composer = Composer(self.config)
             remote, local = composer.process()
@@ -52,8 +56,8 @@ class Deployment:
                 uploadQueue.put(path)
         else:
             for path in objects:
-                modification_time = objects[path]
-                if path in contents and (modification_time is None or modification_time == contents[path]):
+                checksum = objects[path]
+                if path in contents and (checksum is None or checksum == contents[path]):
                     self.index.write(path)
                 else:
                     uploadQueue.put(path)

@@ -25,28 +25,27 @@ class Scanner:
         pool = Pool(processes=cpu_count())
 
         for root in self.roots:
-            if os.name == "nt":
-                root = root.replace("\\", "/")
-
             self.prefix = prefix = len(root)
 
             waiting_room = []
             for folder, subs, files in os.walk(root):
                 if folder not in self.result and folder != root:
+                    if os.name == "nt":
+                        folder = folder.replace("\\", "/")
+
                     pattern = self.is_ignored(folder)
                     if not pattern or pattern == folder:
                         directory = folder[prefix:]
-                        if os.name == "nt":
-                            directory = directory.replace("\\", "/")
                         self.result[directory] = None
 
                 for file in files:
                     total += 1
-                    path = os.path.join(folder, file)
-                    if not self.is_ignored(path):
-                        if os.name == "nt":
-                            path = path.replace("\\", "/")
 
+                    path = os.path.join(folder, file)
+                    if os.name == "nt":
+                        path = path.replace("\\", "/")
+
+                    if not self.is_ignored(path):
                         result = pool.apply_async(process, args=(path, self.config.block_size))
                         waiting_room.append(result)
 
@@ -88,9 +87,6 @@ class Scanner:
 
         formatted = []
         for pattern in ignored:
-            if os.name == "nt":
-                pattern = pattern.replace("/", "\\")
-
             if pattern in mapping:
                 for root in self.roots:
                     if not mapping[pattern].startswith(root):
@@ -107,7 +103,7 @@ class Scanner:
 
     def is_ignored(self, path):
         for pattern in self.ignored:
-            if (pattern.startswith("/") or pattern.startswith("\\")) and path.startswith(pattern):
+            if pattern.startswith("/") and path.startswith(pattern):
                 return pattern
             elif pattern in path:
                 return pattern
