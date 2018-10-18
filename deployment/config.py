@@ -19,7 +19,7 @@ class Config:
     ignore = []
     purge = []
     file_log = False
-    block_size = 10485760  # 10 MiB
+    block_size = 1048576  # 1 MiB
     composer = None
 
     def __init__(self):
