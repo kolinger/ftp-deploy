@@ -1,6 +1,6 @@
 from collections import OrderedDict
 import logging
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import os
 
 from deployment.checksum import sha256_checksum
@@ -22,7 +22,7 @@ class Scanner:
     def scan(self):
         total = 0
 
-        pool = Pool(processes=self.config.threads)
+        pool = Pool(processes=cpu_count())
 
         for root in self.roots:
             if os.name == "nt":
