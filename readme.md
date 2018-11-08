@@ -46,9 +46,20 @@ Configuration is done via .json files.
         "/app/log",
         "/assets/manager/dist",
         "/assets/client/dist"
+    ],
+    "composer": "/app/composer.json",
+    "before": [
+        "command1",
+        "command2
+    ],
+    "after": [
+        "cleanup-command"
     ]
 }
 ````
+
+When composer file is specified then only production dependencies are deployed (--no-dev). 
+Also --prefer-dist is used to exclude unnecessary files.
 
 Usage
 -----
@@ -64,6 +75,8 @@ will look for .ftp-dev.json
 or create local configuration file named .ftp-deploy.json and run just  
 
 ``python deploy.py``
+
+Before and after command can be skipped with --skip option.
 
 Upgrade
 -------
