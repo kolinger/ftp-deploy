@@ -202,4 +202,8 @@ class Deployment:
         for command in list:
             logging.info("Command " + command + " started")
             process = Process(command).execute(None, callback)
-            logging.info("Command " + command + " ended with return code: " + str(process.return_code()))
+            if process.return_code() != 0:
+                logging.info("Command " + command + " failed with return code: " + str(process.return_code()))
+                exit(1)
+            else:
+                logging.info("Command " + command + " ended with return code: " + str(process.return_code()))
