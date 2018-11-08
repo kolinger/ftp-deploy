@@ -21,6 +21,8 @@ class Config:
     file_log = False
     block_size = 1048576  # 1 MiB
     composer = None
+    run_before = []
+    run_after = []
 
     def __init__(self):
         pass
@@ -77,6 +79,12 @@ class Config:
 
         if "composer" in data:
             self.composer = data["composer"].lstrip("/")
+
+        if "before" in data:
+            self.run_before = data["before"]
+
+        if "after" in data:
+            self.run_after = data["after"]
 
         if self.composer:
             for index, value in enumerate(self.ignore):

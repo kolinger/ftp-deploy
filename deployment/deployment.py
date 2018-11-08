@@ -10,6 +10,7 @@ from deployment.composer import Composer
 from deployment.counter import Counter
 from deployment.ftp import Ftp
 from deployment.index import Index
+from deployment.process import Process
 from deployment.scanner import Scanner
 from deployment.worker import Worker
 
@@ -24,7 +25,7 @@ class Deployment:
         self.ftp = Ftp(self.config)
         self.failed = Queue()
 
-    def deploy(self):
+    def deploy(self, skip):
         result = self.index.read()
         remove = result["remove"]
         contents = result["contents"]
@@ -40,6 +41,13 @@ class Deployment:
             roots.append(local.replace(remote, ""))
             self.mapping[remote] = local
             self.config.ignore.append(remote)
+
+        if len(self.config.run_before) > 0:
+            if skip:
+                logging.info("Skipping before commands")
+            else:
+                logging.info("Running before commands:")
+                self.run_commands(self.config.run_before)
 
         logging.info("Scanning...")
         scanner = Scanner(self.config, roots, self.config.ignore, self.mapping)
@@ -149,6 +157,13 @@ class Deployment:
 
             logging.info("Purging done")
 
+        if len(self.config.run_after) > 0:
+            if skip:
+                logging.info("Skipping after commands")
+            else:
+                logging.info("Running after commands:")
+                self.run_commands(self.config.run_after)
+
         if not self.failed.empty():
             logging.fatal("FAILED TO PROCESS FOLLOWING OBJECTS")
             while True:
@@ -179,3 +194,12 @@ class Deployment:
     def close(self):
         self.index.close()
         self.ftp.close()
+
+    def run_commands(self, list):
+        def callback(line):
+            logging.info(line)
+
+        for command in list:
+            logging.info("Command " + command + " started")
+            process = Process(command).execute(None, callback)
+            logging.info("Command " + command + " ended with return code: " + str(process.return_code()))

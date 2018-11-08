@@ -11,11 +11,8 @@ class Process:
         self.timeout = timeout
         self.encoding = encoding
 
-    def testing(self):
-        pass
-
-    def execute(self, input=None):
-        thread = threading.Thread(target=self.target, args=(input,))
+    def execute(self, input=None, callback=None):
+        thread = threading.Thread(target=self.target, args=(input, callback))
         thread.start()
 
         thread.join(self.timeout)
@@ -25,13 +22,23 @@ class Process:
 
         return self
 
-    def target(self, input):
+    def target(self, input, callback):
         self.process = subprocess.Popen(
             self.command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
         )
-        (data, none) = self.process.communicate(input)
 
-        self.data = data.decode(self.encoding)
+        if callback:
+            while self.process.poll() is None:
+                for line in self.process.stdout:
+                    line = line.decode(self.encoding)
+                    line = line.strip()
+                    self.data += line + "\n"
+                    callback(line)
+        else:
+            (data, none) = self.process.communicate(input)
+
+            self.data = data.decode(self.encoding)
+
         self.data = self.data.strip()
 
     def read_lines(self):

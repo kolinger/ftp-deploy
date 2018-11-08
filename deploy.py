@@ -38,6 +38,12 @@ if __name__ == '__main__':
                 logging.error("Configuration file " + sys.argv[1] + " doesn't exist")
                 sys.exit(1)
 
+        skip = False
+        for argument in sys.argv:
+            if argument == "--skip":
+                skip = True
+                break
+
         config = Config()
         config.parse(fileName)
 
@@ -53,7 +59,7 @@ if __name__ == '__main__':
         logging.info("Using " + str(config.threads) + " threads")
 
         deployment = Deployment(config)
-        deployment.deploy()
+        deployment.deploy(skip)
 
         elapsed = timeit.default_timer() - start_time
         logging.info("Elapsed time " + str(elapsed) + " seconds")
