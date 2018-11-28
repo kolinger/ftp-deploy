@@ -23,26 +23,20 @@ if __name__ == '__main__':
 
     deployment = None
     try:
-        fileName = ".ftp-deploy.json"
+        fileName = "deploy"
+        skip = False
+        for argument in sys.argv[1:]:
+            if argument == "skip":
+                skip = True
+            else:
+                fileName = argument
 
-        if not os.path.isfile(fileName) and len(sys.argv) < 2:
+        if not os.path.isfile(fileName):
+            fileName = ".ftp-" + fileName + ".json"
+
+        if not os.path.isfile(fileName):
             logging.error("Configuration file " + fileName + " doesn't exist")
             sys.exit(1)
-        elif len(sys.argv) > 1:
-            fileName = sys.argv[1]
-
-            if not os.path.isfile(fileName):
-                fileName = ".ftp-" + sys.argv[1] + ".json"
-
-            if not os.path.isfile(fileName):
-                logging.error("Configuration file " + sys.argv[1] + " doesn't exist")
-                sys.exit(1)
-
-        skip = False
-        for argument in sys.argv:
-            if argument == "--skip":
-                skip = True
-                break
 
         config = Config()
         config.parse(fileName)
