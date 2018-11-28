@@ -76,7 +76,7 @@ or create local configuration file named .ftp-deploy.json and run just
 
 ``python deploy.py``
 
-Before and after command can be skipped with --skip option.
+Before and after command can be skipped with `skip` option.
 
 Upgrade
 -------
