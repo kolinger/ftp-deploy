@@ -38,8 +38,20 @@ class Deployment:
         if self.config.composer:
             composer = Composer(self.config)
             remote, local = composer.process()
+
+            # add another root so live vendor is scanned
             roots.append(local.replace(remote, ""))
+
+            # map development vendor to live
             self.mapping[remote] = local
+
+            # map also .json and .lock files from live vendor
+            remote_base = os.path.dirname(remote)
+            local_base = os.path.dirname(local)
+            for file in ["composer.json", "composer.lock"]:
+                self.mapping[remote_base + "/" + file] = local_base + "/" + file
+
+            # ignore development vendor
             self.config.ignore.append(remote)
 
         if len(self.config.run_before) > 0:

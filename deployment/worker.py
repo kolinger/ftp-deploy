@@ -1,3 +1,4 @@
+import ftplib
 import logging
 import os
 from queue import Empty
@@ -76,7 +77,9 @@ class Worker(Thread):
                     self.queue.task_done()
                 except (KeyboardInterrupt, SystemExit):
                     raise
-                except Exception as e:
+                except ftplib.all_errors as e:
+                    logging.warning("Upload of " + path + " failed, will retry later, reason: " + str(e))
+
                     if retry < self.config.retry_count:
                         self.queue.put({
                             "path": path,
