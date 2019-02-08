@@ -1,5 +1,6 @@
 import bz2
 from collections import OrderedDict
+import ftplib
 import logging
 from multiprocessing import Lock
 import os
@@ -18,7 +19,6 @@ class Index:
 
     def __init__(self, config):
         self.config = config
-        self.ftp = Ftp(self.config)
 
         self.file_path = self.config.local + self.FILE_NAME
         self.backup_path = self.config.local + self.BACKUP_FILE_NAME
@@ -26,13 +26,18 @@ class Index:
     def read(self):
         remove = True
 
+        if os.path.isfile(self.file_path) and not os.path.isfile(self.backup_path):
+            os.rename(self.file_path, self.backup_path)
+
         if os.path.isfile(self.backup_path):
-            with open(self.backup_path, "r") as file:
-                contents = file.readlines()
+            with open(self.backup_path, "rb") as file:
+                contents = file.read()
             remove = False
         else:
             logging.info("Downloading index...")
-            contents = self.ftp.download_file_bytes(self.config.remote + self.FILE_NAME)
+            ftp = Ftp(self.config)
+            contents = ftp.download_file_bytes(self.config.remote + self.FILE_NAME)
+            ftp.close()
             if contents is False:
                 raise DownloadFailedException("Index downloading failed")
             logging.info("Index downloaded")
@@ -40,6 +45,10 @@ class Index:
         if contents:
             try:
                 contents = bz2.decompress(contents)
+            except IOError:
+                pass
+
+            try:
                 contents = contents.decode("utf-8")
                 lines = contents.split("\n")
                 contents = OrderedDict()
@@ -57,8 +66,10 @@ class Index:
                             value = None
 
                         contents[path] = value
-            except IOError:
-                pass
+            except UnicodeDecodeError:
+                logging.warning("Failed to parse contents of index - processing to upload everything")
+                if os.path.isfile(self.file_path):
+                    os.rename(self.file_path, self.backup_path)
 
         if type(contents) is not OrderedDict:
             contents = {}
