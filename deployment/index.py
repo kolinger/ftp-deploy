@@ -90,7 +90,21 @@ class Index:
 
         local = self.config.local + self.FILE_NAME
         remote = self.config.remote + self.FILE_NAME
-        self.ftp.upload_file(local, remote, None)
+        retries = 10
+        while True:
+            ftp = Ftp(self.config)
+            try:
+                ftp.upload_file(local, remote, None)
+                break
+            except ftplib.all_errors as e:
+                retries -= 1
+                if retries == 0:
+                    logging.fatal("Failed to upload index")
+                    raise e
+                logging.warning("Retrying to upload index due to error: " + str(e))
+            finally:
+                ftp.close()
+
         os.remove(local)
 
     def close(self):
