@@ -1,3 +1,4 @@
+import ftplib
 from ftplib import FTP, FTP_TLS, error_perm
 from io import BytesIO
 import logging
@@ -121,60 +122,51 @@ class Ftp:
 
         return objects
 
-    def list_directory_contents_recursive(self, directory, callback):
-        self.connect()
-
-        self.ftp.cwd(directory)
-
-        self._list_directory_contents_recursive(callback)
-
-    def _list_directory_contents_recursive(self, callback):
-        self.connect()
-
-        for object in self.ftp.nlst():
-            if object == "." or object == "..":
-                continue
-
-            callback(object)
-
-            try:
-                self.ftp.cwd(object)
-                self._list_directory_contents_recursive(callback)
-                self.ftp.cwd("..")
-            except error_perm:
-                pass
-
     def delete_recursive(self, target):
         self.connect()
 
+        self._retry(
+            self._delete_recursive_helper, {"target": target},
+            "Retrying deletion of " + target,
+            "Failed to delete " + target
+        )
+
+    def _delete_recursive_helper(self, target):
         try:
             self.ftp.delete(target)
         except error_perm:
             try:
                 self.ftp.cwd(target)
-                self._delete_directory_contents_recursive()
+                self._delete_recursive_list_helper()
             except error_perm as e:
                 message = str(e)
                 if "No such file or directory" in message:
                     return
                 raise e
 
-    def _delete_directory_contents_recursive(self):
-        self.connect()
-
-        logging.info("Cleaning " + self.ftp.pwd())
+    def _delete_recursive_list_helper(self):
+        path = self.ftp.pwd()
+        logging.info("Cleaning " + path)
 
         for object in self.ftp.nlst():
             if object == "." or object == "..":
                 continue
-            try:
-                self.ftp.delete(object)
-            except error_perm:
-                # object is directory
-                self.ftp.cwd(object)
-                self._delete_directory_contents_recursive()
-                self.ftp.cwd("..")
-                self.delete_directory(object)
+
+            self._retry(
+                self._delete_recursive_object_helper, {"object": object},
+                "Retrying deletion of " + path,
+                "Failed to delete " + path
+            )
+
+    def _delete_recursive_object_helper(self, object):
+        try:
+            self.ftp.delete(object)
+        except error_perm:
+            # object is directory
+            self.ftp.cwd(object)
+            self._delete_recursive_list_helper()
+            self.ftp.cwd("..")
+            self.delete_directory(object)
 
     def close(self):
         if self.ftp:
@@ -186,3 +178,19 @@ class Ftp:
                 pass
             finally:
                 self.ftp = None
+
+    def _retry(self, callable, arguments, retry_message, failed_message):
+        retries = 10
+        while True:
+            try:
+                if arguments:
+                    callable(**arguments)
+                else:
+                    callable()
+                break
+            except ftplib.all_errors as e:
+                retries -= 1
+                if retries == 0:
+                    logging.fatal(failed_message)
+                    raise e
+                logging.warning(retry_message + " due to error: " + str(e))
