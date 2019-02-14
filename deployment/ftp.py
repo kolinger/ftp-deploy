@@ -23,7 +23,7 @@ class Ftp:
             else:
                 self.ftp = FTP(self.config.host, self.config.user, self.config.password)
 
-            self.ftp.set_pasv(True)
+            self.ftp.set_pasv(self.config.passive)
 
         return self.ftp
 

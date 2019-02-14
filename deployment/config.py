@@ -10,6 +10,7 @@ class Config:
     threads = 1
     local = None
     secure = False
+    passive = True
     host = None
     port = 21
     user = None
@@ -46,6 +47,9 @@ class Config:
 
             if "secure" in inner:
                 self.secure = inner["secure"]
+
+            if "passive" in inner:
+                self.passive = inner["passive"]
 
             if self.is_defined("host", inner, "connection.host"):
                 self.host = inner["host"]
