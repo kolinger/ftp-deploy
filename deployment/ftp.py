@@ -142,6 +142,8 @@ class Ftp:
                 message = str(e)
                 if "No such file or directory" in message:
                     return
+                if "Failed to change directory" in message:
+                    return
                 raise e
 
     def _delete_recursive_list_helper(self):
