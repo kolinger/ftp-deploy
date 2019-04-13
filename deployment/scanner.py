@@ -28,20 +28,30 @@ class Scanner:
             self.prefix = prefix = len(root)
 
             waiting_room = []
-            for folder, subs, files in os.walk(root):
-                if folder not in self.result and folder != root:
-                    if os.name == "nt":
-                        folder = folder.replace("\\", "/")
+            for base, directories, files in os.walk(root):
+                if os.name == "nt":
+                    base = base.replace("\\", "/")
 
-                    pattern = self.is_ignored(folder)
-                    if not pattern or pattern == folder:
-                        directory = folder[prefix:]
-                        self.result[directory] = None
+                for directory in directories:
+                    path = os.path.join(base, directory)
+                    pattern = self.is_ignored(path)
+                    if pattern:
+                        if pattern == path:
+                            self.result[base[prefix:]] = None
+                        directories.remove(directory)
+
+                if base not in self.result and base != root:
+                    pattern = self.is_ignored(base)
+                    if not pattern or pattern == base:
+                        self.result[base[prefix:]] = None
+                        total += 1
+                    if pattern:
+                        continue
 
                 for file in files:
                     total += 1
 
-                    path = os.path.join(folder, file)
+                    path = os.path.join(base, file)
                     if os.name == "nt":
                         path = path.replace("\\", "/")
 
