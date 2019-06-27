@@ -168,7 +168,12 @@ class Ftp:
             self.ftp.cwd(object)
             self._delete_recursive_list_helper()
             self.ftp.cwd("..")
-            self.delete_directory(object)
+            try:
+                self.delete_directory(object)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except:
+                pass
 
     def close(self):
         if self.ftp:
