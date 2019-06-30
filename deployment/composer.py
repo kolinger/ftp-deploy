@@ -39,6 +39,9 @@ class Composer:
 
         shutil.copyfile(configuration, temporary + "/composer.json")
 
+        def output_callback(line):
+            logging.info("composer: " + line)
+
         command = [
             "composer",
             "install",
@@ -51,9 +54,9 @@ class Composer:
             "--working-dir",
             temporary
         ]
-        process = Process(" ".join(command)).execute()
+        process = Process(" ".join(command)).execute(None, output_callback)
         if process.return_code() != 0:
-            logging.error("Composer failed with output: " + process.read())
+            logging.error("Composer failed with return code: " + str(process.return_code()))
             exit(1)
 
         return "/" + prefix + "/vendor", temporary + "/vendor"
