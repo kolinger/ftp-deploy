@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import argparse
 import logging
 from logging import FileHandler, StreamHandler
 import os
@@ -21,15 +21,17 @@ if __name__ == '__main__':
     console.setFormatter(formatter)
     logger.addHandler(console)
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("name", nargs="*", help="configuration path or alias")
+    parser.add_argument("-s", "--skip", action="store_true", help="skip before commands", default=False)
+    parser.add_argument("-pp", "--partial-purge", action="store_true", help="activate partial purge", default=False)
+    args = parser.parse_args()
+
     deployment = None
     try:
         fileName = "deploy"
-        skip = False
-        for argument in sys.argv[1:]:
-            if argument == "skip":
-                skip = True
-            else:
-                fileName = argument
+        if len(args.name) > 0:
+            fileName = args.name[0]
 
         if not os.path.isfile(fileName):
             fileName = ".ftp-" + fileName + ".json"
@@ -53,7 +55,7 @@ if __name__ == '__main__':
         logging.info("Using " + str(config.threads) + " threads")
 
         deployment = Deployment(config)
-        deployment.deploy(skip)
+        deployment.deploy(args.skip, args.partial_purge)
 
         elapsed = timeit.default_timer() - start_time
         logging.info("Elapsed time " + str(elapsed) + " seconds")

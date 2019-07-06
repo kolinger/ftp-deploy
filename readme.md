@@ -47,6 +47,10 @@ Configuration is done via .json files.
         "/assets/manager/dist",
         "/assets/client/dist"
     ],
+    "purge_partial": {
+        "latte": "/app/temp/cache/latte",
+        "neon": "/app/temp/cache/Nette.Configurator"
+    },
     "composer": "/app/composer.json",
     "before": [
         "command1",
@@ -76,7 +80,8 @@ or create local configuration file named .ftp-deploy.json and run just
 
 ``python deploy.py``
 
-Before and after command can be skipped with `skip` option.
+Before and after command can be skipped with `-s|--skip` option.
+Partial purge can be activated with `-p|--purge-partial`
 
 Upgrade
 -------

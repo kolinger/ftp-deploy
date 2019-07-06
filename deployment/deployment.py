@@ -17,6 +17,7 @@ from deployment.worker import Worker
 
 class Deployment:
     mapping = {}
+    extensions = []
 
     def __init__(self, config):
         self.config = config
@@ -25,7 +26,7 @@ class Deployment:
         self.ftp = Ftp(self.config)
         self.failed = Queue()
 
-    def deploy(self, skip):
+    def deploy(self, run_before_skip, purge_partial_enabled):
         result = self.index.read()
         remove = result["remove"]
         contents = result["contents"]
@@ -55,7 +56,7 @@ class Deployment:
             self.config.ignore.append(remote)
 
         if len(self.config.run_before) > 0:
-            if skip:
+            if run_before_skip:
                 logging.info("Skipping before commands")
             else:
                 logging.info("Running before commands:")
@@ -73,6 +74,7 @@ class Deployment:
         offset = 0
         if contents is None:
             for path in objects:
+                self.store_extension(path)
                 uploadQueue.put(path)
         else:
             for path in objects:
@@ -80,6 +82,7 @@ class Deployment:
                 if path in contents and (checksum is None or checksum == contents[path]):
                     self.index.write(path)
                 else:
+                    self.store_extension(path)
                     uploadQueue.put(path)
 
             if os.path.isfile(self.index.backup_path):
@@ -129,10 +132,18 @@ class Deployment:
         else:
             logging.info("Purging...")
 
+            to_purge = self.config.purge
+            extension_count = len(self.extensions)
+            if extension_count > 0 and purge_partial_enabled:
+                to_purge = []
+                for e in self.extensions:
+                    if e in self.config.purge_partial:
+                        to_purge.append(self.config.purge_ext[e])
+
             to_delete = []
             base_folders = {}
             suffix = str(int(time.time())) + ".tmp"
-            for path in self.config.purge:
+            for path in to_purge:
                 current = self.config.remote + path
 
                 name = os.path.basename(current)
@@ -157,7 +168,7 @@ class Deployment:
                 objects = self.ftp.list_directory_contents(base)
                 for object in objects:
                     for name in names:
-                        if re.search("^" + name + "_[0-9]+\.tmp$", object):
+                        if re.search(r"^" + name + r"_[0-9]+\.tmp$", object):
                             to_delete.append(base + "/" + object)
 
             for path in to_delete:
@@ -206,6 +217,11 @@ class Deployment:
     def close(self):
         self.index.close()
         self.ftp.close()
+
+    def store_extension(self, path):
+        extension = os.path.splitext(path)[1][1:]
+        if extension and extension not in self.extensions:
+            self.extensions.append(extension)
 
     def run_commands(self, list):
         def callback(line):

@@ -19,6 +19,7 @@ class Config:
     retry_count = 10
     ignore = []
     purge = []
+    purge_partial = {}
     file_log = False
     block_size = 1048576  # 1 MiB
     composer = None
@@ -74,6 +75,9 @@ class Config:
 
         if "purge" in data:
             self.purge = data["purge"]
+
+        if "purge_partial" in data:
+            self.purge_partial = data["purge_partial"]
 
         if "file_log" in data:
             self.file_log = data["file_log"]
