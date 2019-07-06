@@ -136,9 +136,9 @@ class Deployment:
             extension_count = len(self.extensions)
             if extension_count > 0 and purge_partial_enabled:
                 to_purge = []
-                for e in self.extensions:
-                    if e in self.config.purge_partial:
-                        to_purge.append(self.config.purge_ext[e])
+                for extension in self.extensions:
+                    if extension in self.config.purge_partial:
+                        to_purge.append(self.config.purge_partial[extension])
 
             to_delete = []
             base_folders = {}
