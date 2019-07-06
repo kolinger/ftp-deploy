@@ -23,8 +23,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("name", nargs="*", help="configuration path or alias")
-    parser.add_argument("-s", "--skip", action="store_true", help="skip before commands", default=False)
-    parser.add_argument("-pp", "--partial-purge", action="store_true", help="activate partial purge", default=False)
+    parser.add_argument("-s", "--skip", action="store_true", help="skip before and after commands", default=False)
+    parser.add_argument("-pp", "--purge-partial", action="store_true", help="activate partial purge", default=False)
     args = parser.parse_args()
 
     deployment = None
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         logging.info("Using " + str(config.threads) + " threads")
 
         deployment = Deployment(config)
-        deployment.deploy(args.skip, args.partial_purge)
+        deployment.deploy(args.skip, args.purge_partial)
 
         elapsed = timeit.default_timer() - start_time
         logging.info("Elapsed time " + str(elapsed) + " seconds")
