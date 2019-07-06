@@ -81,7 +81,7 @@ or create local configuration file named .ftp-deploy.json and run just
 ``python deploy.py``
 
 Before and after command can be skipped with `-s|--skip` option.
-Partial purge can be activated with `-p|--purge-partial`
+Partial purge can be activated with `-pp|--purge-partial`
 
 Upgrade
 -------
