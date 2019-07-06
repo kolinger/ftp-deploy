@@ -32,6 +32,9 @@ class Deployment:
         contents = result["contents"]
         roots = [self.config.local]
 
+        if len(self.config.purge_partial) == 0:
+            purge_partial_enabled = False
+
         if os.name == "nt":
             for index, value in enumerate(roots):
                 roots[index] = value.replace("\\", "/")
