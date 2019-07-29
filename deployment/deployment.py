@@ -11,6 +11,7 @@ from deployment.counter import Counter
 from deployment.ftp import Ftp
 from deployment.index import Index
 from deployment.process import Process
+from deployment.purge import Purge
 from deployment.scanner import Scanner
 from deployment.worker import Worker
 
@@ -26,7 +27,11 @@ class Deployment:
         self.ftp = Ftp(self.config)
         self.failed = Queue()
 
-    def deploy(self, skip_before_and_after, purge_partial_enabled):
+    def deploy(self, skip_before_and_after, purge_partial_enabled, purge_only_enabled):
+        if purge_only_enabled:
+            self.purge(purge_partial_enabled)
+            return
+
         result = self.index.read()
         remove = result["remove"]
         contents = result["contents"]
@@ -130,6 +135,25 @@ class Deployment:
         self.index.upload()
         logging.info("Index uploaded")
 
+        self.purge(purge_partial_enabled)
+
+        if len(self.config.run_after) > 0:
+            if skip_before_and_after:
+                logging.info("Skipping after commands")
+            else:
+                logging.info("Running after commands:")
+                self.run_commands(self.config.run_after)
+
+        if not self.failed.empty():
+            logging.fatal("FAILED TO PROCESS FOLLOWING OBJECTS")
+            while True:
+                try:
+                    object = self.failed.get_nowait()
+                    logging.fatal("failed to " + object)
+                except queue.Empty:
+                    break
+
+    def purge(self, purge_partial_enabled):
         if len(self.config.purge) == 0:
             logging.info("Nothing to purge")
         else:
@@ -174,30 +198,12 @@ class Deployment:
                         if re.search(r"^" + name + r"_[0-9]+\.tmp$", object):
                             to_delete.append(base + "/" + object)
 
+            purge = Purge(self.config)
             for path in to_delete:
-                try:
-                    self.ftp.delete_recursive(path)
-                    self.ftp.delete_file_or_directory(path)
-                except error_perm:
-                    pass
+                purge.add(path)
+            purge.process()
 
             logging.info("Purging done")
-
-        if len(self.config.run_after) > 0:
-            if skip_before_and_after:
-                logging.info("Skipping after commands")
-            else:
-                logging.info("Running after commands:")
-                self.run_commands(self.config.run_after)
-
-        if not self.failed.empty():
-            logging.fatal("FAILED TO PROCESS FOLLOWING OBJECTS")
-            while True:
-                try:
-                    object = self.failed.get_nowait()
-                    logging.fatal("failed to " + object)
-                except queue.Empty:
-                    break
 
     def process_queue(self, queue, mode):
         workers = []
@@ -206,12 +212,7 @@ class Deployment:
             worker.start()
             workers.append(worker)
 
-        wait = True
-        while wait:
-            wait = not queue.empty()
-            if not wait:
-                time.sleep(1)
-                wait = not queue.empty()
+        queue.join()
 
         for worker in workers:
             worker.stop()

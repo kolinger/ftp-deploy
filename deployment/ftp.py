@@ -101,24 +101,25 @@ class Ftp:
     def delete_directory(self, directory):
         self.connect()
 
-        try:
-            self.ftp.rmd(directory)
-        except error_perm as e:
-            message = str(e)
-            logging.error("Directory deletion failed, reason: " + message)
-            raise e
+        self.ftp.rmd(directory)
 
-    def list_directory_contents(self, directory):
+    def list_directory_contents(self, directory, extended=False):
         self.connect()
 
-        self.ftp.cwd(directory)
-
         objects = []
-        for object in self.ftp.nlst():
-            if object == "." or object == "..":
-                continue
+        if extended:
+            for name, entry in self.ftp.mlsd(directory, ["type"]):
+                if name == "." or name == "..":
+                    continue
 
-            objects.append(object)
+                objects.append((name, entry["type"]))
+        else:
+            self.ftp.cwd(directory)
+            for object in self.ftp.nlst():
+                if object == "." or object == "..":
+                    continue
+
+                objects.append(object)
 
         return objects
 
