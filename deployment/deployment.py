@@ -26,7 +26,7 @@ class Deployment:
         self.ftp = Ftp(self.config)
         self.failed = Queue()
 
-    def deploy(self, run_before_skip, purge_partial_enabled):
+    def deploy(self, skip_before_and_after, purge_partial_enabled):
         result = self.index.read()
         remove = result["remove"]
         contents = result["contents"]
@@ -59,7 +59,7 @@ class Deployment:
             self.config.ignore.append(remote)
 
         if len(self.config.run_before) > 0:
-            if run_before_skip:
+            if skip_before_and_after:
                 logging.info("Skipping before commands")
             else:
                 logging.info("Running before commands:")
@@ -184,7 +184,7 @@ class Deployment:
             logging.info("Purging done")
 
         if len(self.config.run_after) > 0:
-            if skip:
+            if skip_before_and_after:
                 logging.info("Skipping after commands")
             else:
                 logging.info("Running after commands:")
