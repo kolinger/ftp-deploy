@@ -3,12 +3,14 @@ from ftplib import FTP, FTP_TLS, error_perm
 from io import BytesIO
 import logging
 import os
+import re
 
 from deployment.config import ConfigException
 
 
 class Ftp:
     ftp = None
+    mlsd = True
 
     def __init__(self, config):
         self.config = config
@@ -98,21 +100,46 @@ class Ftp:
                         return
                     raise e
 
-    def delete_directory(self, directory):
+    def delete_directory(self, directory, verify=False):
         self.connect()
 
-        self.ftp.rmd(directory)
+        try:
+            self.ftp.rmd(directory)
+        except ftplib.error_perm:
+            if not verify:
+                raise
+            try:
+                self.ftp.cwd(directory)
+                raise
+            except ftplib.error_perm as e:
+                if "failed to change directory" in str(e).lower():
+                    return
+                raise
 
     def list_directory_contents(self, directory, extended=False):
         self.connect()
 
         objects = []
         if extended:
-            for name, entry in self.ftp.mlsd(directory, ["type"]):
-                if name == "." or name == "..":
-                    continue
+            if self.mlsd:
+                try:
+                    for name, entry in self.ftp.mlsd(directory):
+                        if name == "." or name == "..":
+                            continue
 
-                objects.append((name, entry["type"]))
+                        objects.append((name, entry["type"]))
+
+                    return objects
+                except ftplib.error_perm:
+                    self.mlsd = False
+
+            lines = []
+            self.ftp.dir(directory, lines.append)
+            for line in lines:
+                parts = re.split(r"\s+", line)
+                name = parts[-1]
+                type = "dir" if parts[0][0] == "d" else "file"
+                objects.append((name, type))
         else:
             self.ftp.cwd(directory)
             for object in self.ftp.nlst():

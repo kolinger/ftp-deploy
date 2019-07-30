@@ -65,14 +65,19 @@ class Worker(Thread):
                             type = Purge.TYPE_LISTING
 
                     elif type is Purge.TYPE_FILE:
-                        self.retry(self.ftp.delete_file, {"file": parent})
+                        try:
+                            self.retry(self.ftp.delete_file, {"file": parent}, "operation failed")
+                        except ExpectedError:
+                            pass
 
                     elif type is Purge.TYPE_DIRECTORY:
                         try:
-                            self.retry(self.ftp.delete_directory, {"directory": parent}, "directory not empty")
+                            self.retry(self.ftp.delete_directory, {"directory": parent, "verify": True}, [
+                                "directory not empty",
+                                "operation failed",
+                            ])
                         except ExpectedError as e:
-                            if "directory not empty" in str(e).lower():
-                                self.queue.put((parent, Purge.TYPE_DIRECTORY))
+                            self.queue.put((parent, Purge.TYPE_DIRECTORY))
 
                     if type is Purge.TYPE_LISTING:
                         for path, kind in self.ftp.list_directory_contents(parent, True):
