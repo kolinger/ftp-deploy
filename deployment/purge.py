@@ -57,7 +57,10 @@ class Worker(Thread):
 
                     if type is Purge.TYPE_UNKNOWN:
                         try:
-                            self.retry(self.ftp.delete_file, {"file": parent}, "invalid argument")
+                            self.retry(self.ftp.delete_file, {"file": parent}, [
+                                "invalid argument",
+                                "operation failed",
+                            ])
                         except ExpectedError:
                             type = Purge.TYPE_LISTING
 
