@@ -80,7 +80,11 @@ class Worker(Thread):
                             self.queue.put((parent, Purge.TYPE_DIRECTORY))
 
                     if type is Purge.TYPE_LISTING:
-                        for path, kind in self.ftp.list_directory_contents(parent, True):
+                        parameters = {
+                            "directory": parent,
+                            "extended": True,
+                        }
+                        for path, kind in self.retry(self.ftp.list_directory_contents, parameters, []):
                             path = parent + "/" + path
                             if kind == "file":
                                 self.queue.put((path, Purge.TYPE_FILE))
@@ -106,7 +110,7 @@ class Worker(Thread):
     def stop(self):
         self.running = False
 
-    def retry(self, callable, arguments, expected_error=None):
+    def retry(self, callable, arguments, expected_error=None, fallback=None):
         if expected_error and not isinstance(expected_error, list):
             expected_error = [expected_error]
 
@@ -114,10 +118,9 @@ class Worker(Thread):
         while True:
             try:
                 if arguments:
-                    callable(**arguments)
+                    return callable(**arguments)
                 else:
-                    callable()
-                break
+                    return callable()
             except ftplib.all_errors as e:
                 message = str(e).lower()
 
@@ -132,6 +135,8 @@ class Worker(Thread):
                 retries -= 1
                 if retries == 0:
                     raise e
+
+        return fallback
 
 
 class ExpectedError(Exception):
