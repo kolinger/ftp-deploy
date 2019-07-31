@@ -14,6 +14,7 @@ class Purge:
     TYPE_UNKNOWN = "unknown"
 
     queue = Queue()
+    workers = []
 
     def __init__(self, config):
         self.config = config
@@ -22,21 +23,35 @@ class Purge:
         self.queue.put((path, self.TYPE_UNKNOWN))
 
     def process(self):
-        workers = []
+        self.workers = []
         for number in range(self.config.threads):
             worker = Worker(self.queue, self.config)
             worker.start()
-            workers.append(worker)
+            self.workers.append(worker)
 
         self.queue.join()
 
-        for worker in workers:
+        for worker in self.workers:
             worker.stop()
             worker.join()
+
+        return self.count()
+
+    def count(self):
+        directories = 0
+        files = 0
+
+        for worker in self.workers:
+            directories += worker.directories
+            files += worker.files
+
+        return directories, files
 
 
 class Worker(Thread):
     running = True
+    directories = 0
+    files = 0
     not_empty = {}
 
     def __init__(self, queue, config):
@@ -68,6 +83,7 @@ class Worker(Thread):
                     elif type is Purge.TYPE_FILE:
                         try:
                             self.retry(self.ftp.delete_file, {"file": parent}, "operation failed")
+                            self.files += 1
                         except ExpectedError:
                             pass
 

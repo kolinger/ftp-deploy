@@ -201,9 +201,9 @@ class Deployment:
             purge = Purge(self.config)
             for path in to_delete:
                 purge.add(path)
-            purge.process()
+            directories, files = purge.process()
 
-            logging.info("Purging done")
+            logging.info("Purging done, " + str(files) + " files and " + str(directories) + " directories")
 
     def process_queue(self, queue, mode):
         workers = []
