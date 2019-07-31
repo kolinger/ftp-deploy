@@ -150,59 +150,6 @@ class Ftp:
 
         return objects
 
-    def delete_recursive(self, target):
-        self.connect()
-
-        self._retry(
-            self._delete_recursive_helper, {"target": target},
-            "Retrying deletion of " + target,
-            "Failed to delete " + target
-        )
-
-    def _delete_recursive_helper(self, target):
-        try:
-            self.ftp.delete(target)
-        except error_perm:
-            try:
-                self.ftp.cwd(target)
-                self._delete_recursive_list_helper()
-            except error_perm as e:
-                message = str(e)
-                if "No such file or directory" in message:
-                    return
-                if "Failed to change directory" in message:
-                    return
-                raise e
-
-    def _delete_recursive_list_helper(self):
-        path = self.ftp.pwd()
-        logging.info("Cleaning " + path)
-
-        for object in self.ftp.nlst():
-            if object == "." or object == "..":
-                continue
-
-            self._retry(
-                self._delete_recursive_object_helper, {"object": object},
-                "Retrying deletion of " + path,
-                "Failed to delete " + path
-            )
-
-    def _delete_recursive_object_helper(self, object):
-        try:
-            self.ftp.delete(object)
-        except error_perm:
-            # object is directory
-            self.ftp.cwd(object)
-            self._delete_recursive_list_helper()
-            self.ftp.cwd("..")
-            try:
-                self.delete_directory(object)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except:
-                pass
-
     def close(self):
         if self.ftp:
             try:
@@ -213,19 +160,3 @@ class Ftp:
                 pass
             finally:
                 self.ftp = None
-
-    def _retry(self, callable, arguments, retry_message, failed_message):
-        retries = 10
-        while True:
-            try:
-                if arguments:
-                    callable(**arguments)
-                else:
-                    callable()
-                break
-            except ftplib.all_errors as e:
-                retries -= 1
-                if retries == 0:
-                    logging.fatal(failed_message)
-                    raise e
-                logging.warning(retry_message + " due to error: " + str(e))
