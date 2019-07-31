@@ -132,6 +132,8 @@ class Worker(Thread):
                         if string in message:
                             raise ExpectedError(e)
 
+                self.ftp.close()
+
                 retries -= 1
                 if retries == 0:
                     raise e
