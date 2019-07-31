@@ -37,6 +37,7 @@ class Purge:
 
 class Worker(Thread):
     running = True
+    not_empty = {}
 
     def __init__(self, queue, config):
         super(Worker, self).__init__()
@@ -76,8 +77,17 @@ class Worker(Thread):
                                 "directory not empty",
                                 "operation failed",
                             ])
-                        except ExpectedError as e:
-                            self.queue.put((parent, Purge.TYPE_DIRECTORY))
+                            self.directories += 1
+                        except ExpectedError:
+                            if parent not in self.not_empty:
+                                self.not_empty[parent] = 0
+                            self.not_empty[parent] += 1
+
+                            if self.not_empty[parent] > 5:
+                                self.not_empty[parent] = -20
+                                self.queue.put((parent, Purge.TYPE_LISTING))
+                            else:
+                                self.queue.put((parent, Purge.TYPE_DIRECTORY))
 
                     if type is Purge.TYPE_LISTING:
                         parameters = {
@@ -132,7 +142,8 @@ class Worker(Thread):
                         if string in message:
                             raise ExpectedError(e)
 
-                self.ftp.close()
+                if isinstance(e, EOFError):
+                    self.ftp.close()
 
                 retries -= 1
                 if retries == 0:
