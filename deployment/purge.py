@@ -84,7 +84,7 @@ class Worker(Thread):
                             "directory": parent,
                             "extended": True,
                         }
-                        for path, kind in self.retry(self.ftp.list_directory_contents, parameters, []):
+                        for path, kind in self.retry(self.ftp.list_directory_contents, parameters, fallback=[]):
                             path = parent + "/" + path
                             if kind == "file":
                                 self.queue.put((path, Purge.TYPE_FILE))
