@@ -1,14 +1,11 @@
 from collections import OrderedDict
 import logging
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, Manager
 import os
+from queue import Empty
 
 from deployment.checksum import sha256_checksum
 from deployment.index import Index
-
-
-def process(path, block_size):
-    return [path, sha256_checksum(path, block_size)]
 
 
 class Scanner:
@@ -20,64 +17,32 @@ class Scanner:
         self.result = {}
 
     def scan(self):
-        total = 0
+        scan_queue = Manager().Queue()
+        hash_queue = Manager().Queue()
+        result_queue = Manager().Queue()
 
-        pool = Pool(processes=cpu_count())
+        worker_count = cpu_count()
+        scanning_pool = Pool(processes=worker_count)
+        hashing_pool = Pool(processes=worker_count)
+        for count in range(0, worker_count):
+            scanning_pool.apply_async(self.scanning_worker, (scan_queue, hash_queue, result_queue))
+            hashing_pool.apply_async(self.hashing_worker, (hash_queue, result_queue))
 
         for root in self.roots:
             self.prefix = prefix = len(root)
+            scan_queue.put((root, prefix))
 
-            waiting_room = []
-            for base, directories, files in os.walk(root):
-                if os.name == "nt":
-                    base = base.replace("\\", "/")
+        scan_queue.join()
+        hash_queue.join()
 
-                for directory in directories:
-                    path = os.path.join(base, directory)
-                    pattern = self.is_ignored(path)
-                    if pattern:
-                        if pattern == path:
-                            self.result[base[prefix:]] = None
-                        directories.remove(directory)
+        try:
+            for path, value in iter(result_queue.get_nowait, None):
+                self.result[path] = value
+        except Empty:
+            pass
 
-                if base not in self.result and base != root:
-                    pattern = self.is_ignored(base)
-                    if not pattern or pattern == base:
-                        self.result[base[prefix:]] = None
-                        total += 1
-                    if pattern:
-                        continue
-
-                for file in files:
-                    total += 1
-
-                    path = os.path.join(base, file)
-                    if os.name == "nt":
-                        path = path.replace("\\", "/")
-
-                    if not self.is_ignored(path):
-                        result = pool.apply_async(process, args=(path, self.config.block_size))
-                        waiting_room.append(result)
-
-                        directory = path
-                        while True:
-                            directory = os.path.dirname(directory)
-                            if directory in self.result:
-                                break
-                            if directory == root:
-                                break
-                            self.result[directory[prefix:]] = None
-
-            for result in waiting_room:
-                result = result.get(3600)
-                path = result[0]
-                value = result[1]
-                self.result[path[self.prefix:]] = value
-
-        pool.close()
-        pool.join()
-
-        logging.info("Found " + str(total) + " objects")
+        scanning_pool.terminate()
+        hashing_pool.terminate()
 
         keys = list(self.result.keys())
         keys.sort()
@@ -89,6 +54,44 @@ class Scanner:
         logging.info("Found " + str(len(ordered)) + " valid objects to take care of")
 
         return ordered
+
+    def scanning_worker(self, scan_queue, hash_queue, result_queue):
+        while True:
+            try:
+                parent, prefix = scan_queue.get_nowait()
+
+                with os.scandir(parent) as iterator:
+                    for entry in iterator:
+                        path = entry.path
+                        if os.name == "nt":
+                            path = path.replace("\\", "/")
+
+                        ignored = self.is_ignored(path)
+
+                        if entry.is_file():
+                            if not ignored:
+                                hash_queue.put((path, prefix))
+                        else:
+                            if not ignored or ignored == path:
+                                if ignored != path:
+                                    scan_queue.put((path, prefix))
+                                result_queue.put((path[prefix:], None))
+
+                scan_queue.task_done()
+            except Empty:
+                pass
+
+    def hashing_worker(self, hash_queue, result_queue):
+        while True:
+            try:
+                path, prefix = hash_queue.get_nowait()
+
+                hash = sha256_checksum(path, self.config.block_size)
+                result_queue.put((path[prefix:], hash))
+
+                hash_queue.task_done()
+            except Empty:
+                pass
 
     def format_ignored(self, ignored, mapping):
         ignored.append(Index.FILE_NAME)
