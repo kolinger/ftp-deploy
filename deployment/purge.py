@@ -76,6 +76,7 @@ class Worker(Thread):
                             self.retry(self.ftp.delete_file, {"file": parent}, [
                                 "invalid argument",
                                 "operation failed",
+                                "is a directory",
                             ])
                         except ExpectedError:
                             type = Purge.TYPE_LISTING
