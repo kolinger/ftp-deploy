@@ -164,7 +164,7 @@ class Deployment:
             if extension_count > 0 and purge_partial_enabled:
                 to_purge = []
                 for extension in self.extensions:
-                    if extension in self.config.purge_partial:
+                    if extension in self.config.purge_partial and self.config.purge_partial[extension] not in to_purge:
                         to_purge.append(self.config.purge_partial[extension])
 
             to_delete = []
