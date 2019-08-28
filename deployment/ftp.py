@@ -2,7 +2,6 @@ import ftplib
 from ftplib import FTP, FTP_TLS, error_perm
 from io import BytesIO
 import logging
-import os
 import re
 
 from deployment.config import ConfigException
@@ -49,21 +48,7 @@ class Ftp:
         self.connect()
 
         with open(local, "rb") as file:
-            directory = remote
-            while True:
-                try:
-                    self.ftp.storbinary("STOR " + remote, file, 8192, callback)
-                    break
-                except error_perm as e:
-                    message = str(e)
-                    if message.startswith("553") or message.startswith("550"):  # directory not exists
-                        directory = os.path.dirname(directory)
-                        if directory == "/":
-                            raise e
-                        self.create_directory(directory)
-                        continue
-
-                    raise e
+            self.ftp.storbinary("STOR " + remote, file, 8192, callback)
 
     def download_file_bytes(self, file):
         self.connect()
