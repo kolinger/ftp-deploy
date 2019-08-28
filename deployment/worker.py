@@ -19,6 +19,8 @@ class Worker(Thread):
     written = 0
     percent = None
     next_percent_update = 0
+    phase = "init"
+    local_counter = 0
 
     def __init__(self, queue, config, counter, index, failed, mode, mapping):
         super(Worker, self).__init__()
@@ -36,6 +38,7 @@ class Worker(Thread):
     def run(self):
         while self.running:
             try:
+                self.phase = "fetch"
                 value = self.queue.get_nowait()
                 if type(value) is dict:
                     path = value["path"]
@@ -54,12 +57,11 @@ class Worker(Thread):
                                 self.prefix = "Uploading (" + self.counter.counter() + ") " + path
                                 logging.info(self.prefix)
 
+                            self.phase = "upload"
                             self.upload(path)
-                            self.index.write(path)
 
-                            if retry > 0:
-                                counter = str(retry) + " of " + str(self.config.retry_count)
-                                logging.info("Repeated upload (" + counter + ") " + path + " WAS SUCCESSFUL")
+                            self.phase = "index"
+                            self.index.write(path)
 
                         elif self.mode == self.MODE_REMOVE:
                             if retry > 0:
@@ -68,16 +70,16 @@ class Worker(Thread):
                             else:
                                 logging.info("Removing (" + self.counter.counter() + ") " + path)
 
+                            self.phase = "delete"
                             self.ftp.delete_file_or_directory(self.config.remote + path)
 
-                            if retry > 0:
-                                counter = str(retry) + " of " + str(self.config.retry_count)
-                                logging.info("Repeated remove (" + counter + ") " + path + " WAS SUCCESSFUL")
-
+                    self.phase = "done"
                     self.queue.task_done()
+                    self.local_counter += 1
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except ftplib.all_errors as e:
+                    self.phase = "error"
                     logging.warning("Upload of " + path + " failed, will retry later, reason: " + str(e))
 
                     if retry < self.config.retry_count:
@@ -89,6 +91,7 @@ class Worker(Thread):
                         logging.exception(e)
                         self.failed.put(self.mode + " " + path + " (" + str(e) + ")")
 
+                    self.phase = "close"
                     self.ftp.close()
 
                     self.queue.task_done()

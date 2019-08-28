@@ -4,7 +4,9 @@ import os
 import queue
 from queue import Queue
 import re
+from threading import Thread
 import time
+from time import sleep
 
 from deployment.composer import Composer
 from deployment.counter import Counter
@@ -212,11 +214,29 @@ class Deployment:
             worker.start()
             workers.append(worker)
 
+        Thread(target=self.monitor, args=(workers, queue), daemon=True).start()
+
         queue.join()
 
         for worker in workers:
             worker.stop()
             worker.join()
+
+    def monitor(self, workers, queue):
+        size = queue.qsize()
+        while True:
+            if size == queue.qsize():
+                parts = []
+                for index, worker in enumerate(workers):
+                    if worker.running:
+                        parts.append(str(index) + " " + str(worker.phase) + " (" + str(worker.local_counter) + ")")
+
+                if len(parts) > 0:
+                    print("workers: " + ", ".join(parts))
+
+            size = queue.qsize()
+
+            sleep(1)
 
     def close(self):
         self.index.close()
