@@ -229,10 +229,10 @@ class Deployment:
                 parts = []
                 for index, worker in enumerate(workers):
                     if worker.running:
-                        parts.append(str(index) + " " + str(worker.phase) + " (" + str(worker.local_counter) + ")")
+                        parts.append(str(index + 1) + " " + str(worker.phase) + " (" + str(worker.local_counter) + ")")
 
                 if len(parts) > 0:
-                    print("workers: " + ", ".join(parts))
+                    logging.info("Workers state: " + ", ".join(parts))
 
             size = queue.qsize()
 
