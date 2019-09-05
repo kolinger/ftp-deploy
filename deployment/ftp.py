@@ -2,6 +2,7 @@ import ftplib
 from ftplib import FTP, FTP_TLS, error_perm
 from io import BytesIO
 import logging
+import os
 import re
 
 from deployment.config import ConfigException
@@ -44,11 +45,29 @@ class Ftp:
                 return  # already exists - ignore
             raise e
 
-    def upload_file(self, local, remote, callback):
+    def upload_file(self, local, remote, callback, ensure_directory=True):
         self.connect()
 
         with open(local, "rb") as file:
-            self.ftp.storbinary("STOR " + remote, file, 8192, callback)
+            try:
+                self.ftp.storbinary("STOR " + remote, file, 8192, callback)
+            except ftplib.all_errors as e:
+                message = str(e).lower()
+                if ensure_directory and "no such file or directory" in message:
+                    self.ensure_directory_exists(os.path.dirname(remote))
+                    self.upload_file(local, remote, callback, False)
+                else:
+                    raise e
+
+    def ensure_directory_exists(self, path):
+        previous = []
+        for directory in path.split("/"):
+            if directory == "":
+                continue
+
+            previous.append(directory)
+            path = "/".join(previous)
+            self.create_directory(path)
 
     def download_file_bytes(self, file):
         self.connect()
