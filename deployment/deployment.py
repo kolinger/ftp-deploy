@@ -236,7 +236,7 @@ class Deployment:
 
             size = queue.qsize()
 
-            sleep(1)
+            sleep(5)
 
     def close(self):
         self.index.close()
