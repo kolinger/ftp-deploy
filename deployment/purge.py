@@ -159,7 +159,7 @@ class Worker(Thread):
                         if string in message:
                             raise ExpectedError(e)
 
-                if isinstance(e, EOFError):
+                if isinstance(e, EOFError) or isinstance(e, OSError):
                     self.ftp.close()
 
                 retries -= 1
