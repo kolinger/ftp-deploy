@@ -82,6 +82,7 @@ or create local configuration file named .ftp-deploy.json and run just
 
 Before and after command can be skipped with `-s|--skip` option.
 Partial purge can be activated with `-pp|--purge-partial`.
+Threads can be overridden with `-t|--threads`.
 
 Upgrade
 -------
