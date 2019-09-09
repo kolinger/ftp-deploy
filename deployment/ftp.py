@@ -11,6 +11,10 @@ from deployment.config import ConfigException
 class Ftp:
     ftp = None
     mlsd = True
+    error_file_failed_no_directory = [
+        "could not create file",
+        "no such file or directory",
+    ]
 
     def __init__(self, config):
         self.config = config
@@ -53,9 +57,12 @@ class Ftp:
                 self.ftp.storbinary("STOR " + remote, file, 8192, callback)
             except ftplib.all_errors as e:
                 message = str(e).lower()
-                if ensure_directory and "no such file or directory" in message:
-                    self.ensure_directory_exists(os.path.dirname(remote))
-                    self.upload_file(local, remote, callback, False)
+                if ensure_directory:
+                    for error in self.error_file_failed_no_directory:
+                        if error in message:
+                            self.ensure_directory_exists(os.path.dirname(remote))
+                            self.upload_file(local, remote, callback, False)
+                            break
                 else:
                     raise e
 
