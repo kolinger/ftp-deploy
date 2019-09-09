@@ -62,9 +62,9 @@ class Ftp:
                         if error in message:
                             self.ensure_directory_exists(os.path.dirname(remote))
                             self.upload_file(local, remote, callback, False)
-                            break
-                else:
-                    raise e
+                            return
+
+                raise e
 
     def ensure_directory_exists(self, path):
         previous = []
