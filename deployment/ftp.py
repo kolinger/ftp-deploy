@@ -25,9 +25,9 @@ class Ftp:
                 raise ConfigException("host is missing")
 
             if self.config.secure:
-                self.ftp = FTP_TLS(self.config.host, self.config.user, self.config.password)
+                self.ftp = FTP_TLS(self.config.host, self.config.user, self.config.password, timeout=10)
             else:
-                self.ftp = FTP(self.config.host, self.config.user, self.config.password)
+                self.ftp = FTP(self.config.host, self.config.user, self.config.password, timeout=10)
 
             self.ftp.set_pasv(self.config.passive)
 
