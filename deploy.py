@@ -27,6 +27,7 @@ if __name__ == '__main__':
     parser.add_argument("-pp", "--purge-partial", action="store_true", help="activate partial purge", default=False)
     parser.add_argument("-po", "--purge-only", action="store_true", help="only purge", default=False)
     parser.add_argument("-t", "--threads", help="override config threads", default=None, type=int)
+    parser.add_argument("-pt", "--purge-threads", help="override config threads", default=None, type=int)
     args = parser.parse_args()
 
     deployment = None
@@ -44,8 +45,12 @@ if __name__ == '__main__':
 
         config = Config()
         config.parse(fileName)
+
         if args.threads is not None:
             config.threads = args.threads
+
+        if args.purge_threads is not None:
+            config.purge_threads = args.purge_threads
 
         if config.file_log:
             file = FileHandler(config.local + "/" + fileName + ".log")

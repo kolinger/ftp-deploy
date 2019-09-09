@@ -17,7 +17,7 @@ Configuration is done via .json files.
 {
     "local": "/local/path",
     "connection": {
-        "threads": 10,
+        "threads": 2,
         "secure": false,
         "host": "hostname",
         "port": 21,
@@ -51,6 +51,7 @@ Configuration is done via .json files.
         "latte": "/app/temp/cache/latte",
         "neon": "/app/temp/cache/Nette.Configurator"
     },
+    "purge_threads": 10,
     "composer": "/app/composer.json",
     "before": [
         "command1",
@@ -68,21 +69,24 @@ Also --prefer-dist is used to exclude unnecessary files.
 Usage
 -----
 
-``python deploy.py /path/to/my/configuration.json``
+- Config can be loaded in multiple ways:
 
-or use more user-friendly pattern
+    ``python deploy.py /path/to/my/configuration.json``
+    
+    or use more user-friendly pattern
+    
+    ``python deploy.py dev``
+    
+    will look for .ftp-dev.json
+    
+    or create local configuration file named .ftp-deploy.json and run just  
+    
+    ``python deploy.py``
 
-``python deploy.py dev``
-
-will look for .ftp-dev.json
-
-or create local configuration file named .ftp-deploy.json and run just  
-
-``python deploy.py``
-
-Before and after command can be skipped with `-s|--skip` option.
-Partial purge can be activated with `-pp|--purge-partial`.
-Threads can be overridden with `-t|--threads`.
+- Threads can be overridden with `-t|--threads`.
+- Before and after command can be skipped with `-s|--skip` option.
+- Partial purge can be activated with `-pp|--purge-partial`.
+- Purge threads can be overridden with `-pt|--purge-threads`.
 
 Upgrade
 -------

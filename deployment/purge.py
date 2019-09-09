@@ -24,7 +24,8 @@ class Purge:
 
     def process(self):
         self.workers = []
-        for number in range(self.config.threads):
+        logging.info("Using " + str(self.config.purge_threads) + " threads")
+        for number in range(self.config.purge_threads):
             worker = Worker(self.queue, self.config)
             worker.start()
             self.workers.append(worker)

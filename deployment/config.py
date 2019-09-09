@@ -7,7 +7,7 @@ from deployment.exceptions import ConfigException
 
 class Config:
     name = None
-    threads = 1
+    threads = 2
     local = None
     secure = False
     passive = True
@@ -20,6 +20,7 @@ class Config:
     ignore = []
     purge = []
     purge_partial = {}
+    purge_threads = 10
     file_log = False
     block_size = 1048576  # 1 MiB
     composer = None
@@ -78,6 +79,11 @@ class Config:
 
         if "purge_partial" in data:
             self.purge_partial = data["purge_partial"]
+
+        if "purge_threads" in data:
+            self.purge_threads = data["purge_threads"]
+            if self.purge_threads < 1:
+                self.purge_threads = 1
 
         if "file_log" in data:
             self.file_log = data["file_log"]
