@@ -23,9 +23,11 @@ Configuration is done via .json files.
         "port": 21,
         "user": "username",
         "password": "password",
-        "root": "/remote/path"
+        "root": "/remote/path",
+        "bind": "ethX"
     },
     "retry_count": 10,
+    "timeout": 10,
     "ignore": [
         ".git",
         ".idea",
@@ -69,7 +71,7 @@ Also --prefer-dist is used to exclude unnecessary files.
 Usage
 -----
 
-- Config can be loaded in multiple ways:
+  - Config can be loaded in multiple ways:
 
     ``python deploy.py /path/to/my/configuration.json``
     
@@ -83,10 +85,15 @@ Usage
     
     ``python deploy.py``
 
-- Threads can be overridden with `-t|--threads`.
-- Before and after command can be skipped with `-s|--skip` option.
-- Partial purge can be activated with `-pp|--purge-partial`.
-- Purge threads can be overridden with `-pt|--purge-threads`.
+  - Threads can be overridden with `-t|--threads`.
+  
+  - Before and after command can be skipped with `-s|--skip` option.
+  
+  - Partial purge can be activated with `-pp|--purge-partial`.
+  
+  - Purge threads can be overridden with `-pt|--purge-threads`.
+  
+  - Bind interface or source address can by specified with `-b|--bind`.
 
 Upgrade
 -------
