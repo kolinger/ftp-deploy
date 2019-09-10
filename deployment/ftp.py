@@ -3,9 +3,12 @@ from ftplib import FTP, FTP_TLS, error_perm
 from io import BytesIO
 import logging
 import os
+import platform
 import re
+from subprocess import check_output, CalledProcessError, STDOUT
 
 from deployment.config import ConfigException
+from deployment.exceptions import MessageException
 
 
 class Ftp:
@@ -24,10 +27,20 @@ class Ftp:
             if not self.config.host:
                 raise ConfigException("host is missing")
 
+            parameters = {
+                "host": self.config.host,
+                "user": self.config.user,
+                "passwd": self.config.password,
+                "timeout": self.config.timeout,
+            }
+            if self.config.bind:
+                address = self.translate_interface_to_address(self.config.bind)
+                parameters["source_address"] = (address, 0)
+
             if self.config.secure:
-                self.ftp = FTP_TLS(self.config.host, self.config.user, self.config.password, timeout=10)
+                self.ftp = FTP_TLS(**parameters)
             else:
-                self.ftp = FTP(self.config.host, self.config.user, self.config.password, timeout=10)
+                self.ftp = FTP(**parameters)
 
             self.ftp.set_pasv(self.config.passive)
 
@@ -171,3 +184,46 @@ class Ftp:
                 pass
             finally:
                 self.ftp = None
+
+    def translate_interface_to_address(self, bind):
+        if re.match(r"^[0-9.]+$", bind):
+            return bind
+
+        if os.name == "nt" or "microsoft" in platform.uname()[2].lower():
+            output = check_output("ipconfig.exe", shell=True)
+            output = output.decode("ascii", errors="ignore")
+
+            found = False
+            for line in output.split("\n"):
+                line = line.strip()
+
+                match = re.match(r"^Ethernet adapter ([^:]+):$", line, flags=re.I)
+                if match:
+                    if match.group(1) == bind:
+                        found = True
+                        continue
+
+                if found:
+                    match = re.match(r"^IPv4 Address[\s.]*: ([0-9.]+)$", line, flags=re.I)
+                    if match:
+                        return match.group(1)
+
+            if found:
+                raise MessageException("address not found for interface " + bind)
+            else:
+                raise MessageException("interface " + bind + " not found")
+
+        else:
+            try:
+                output = check_output("ip addr show " + bind, shell=True, stderr=STDOUT)
+                output = output.decode("ascii", errors="ignore")
+                match = re.search(r"^\s*inet ([0-9.]+)/[0-9]+", output, flags=re.I | re.M)
+                if match:
+                    return match.group(1)
+
+                raise MessageException("address not found for interface " + bind)
+            except CalledProcessError as e:
+                if b"does not exist" in e.stdout:
+                    raise MessageException("interface " + bind + " not found")
+                else:
+                    raise e

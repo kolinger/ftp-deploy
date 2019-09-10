@@ -16,7 +16,9 @@ class Config:
     user = None
     password = None
     remote = None
+    bind = None
     retry_count = 10
+    timeout = 10
     ignore = []
     purge = []
     purge_partial = {}
@@ -68,8 +70,14 @@ class Config:
             if self.is_defined("root", inner, "connection.root"):
                 self.remote = inner["root"]
 
+            if "bind" in inner:
+                self.bind = inner["bind"]
+
         if "retry_count" in data:
             self.retry_count = data["retry_count"]
+
+        if "timeout" in data:
+            self.timeout = data["timeout"]
 
         if "ignore" in data:
             self.ignore = data["ignore"]
