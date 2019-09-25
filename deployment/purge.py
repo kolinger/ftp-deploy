@@ -24,8 +24,9 @@ class Purge:
 
     def process(self):
         self.workers = []
-        logging.info("Using " + str(self.config.purge_threads) + " threads")
-        for number in range(self.config.purge_threads):
+        threads = self.config.threads if self.config.purge_threads is None else self.config.purge_threads
+        logging.info("Using " + str(threads) + " threads")
+        for number in range(threads):
             worker = Worker(self.queue, self.config)
             worker.start()
             self.workers.append(worker)

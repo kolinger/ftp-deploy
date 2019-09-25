@@ -22,7 +22,7 @@ class Config:
     ignore = []
     purge = []
     purge_partial = {}
-    purge_threads = 10
+    purge_threads = None
     file_log = False
     block_size = 1048576  # 1 MiB
     composer = None
