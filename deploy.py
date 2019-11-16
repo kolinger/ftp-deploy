@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--skip", action="store_true", help="skip before and after commands", default=False)
     parser.add_argument("-pp", "--purge-partial", action="store_true", help="activate partial purge", default=False)
     parser.add_argument("-po", "--purge-only", action="store_true", help="only purge", default=False)
+    parser.add_argument("-ps", "--purge-skip", action="store_true", help="skip purge", default=False)
     parser.add_argument("-t", "--threads", help="override config threads", default=None, type=int)
     parser.add_argument("-pt", "--purge-threads", help="override config threads", default=None, type=int)
     parser.add_argument("-b", "--bind", help="bind interface or source address", default=None)
@@ -68,7 +69,7 @@ if __name__ == '__main__':
         logging.info("Using " + str(config.threads) + " threads")
 
         deployment = Deployment(config)
-        deployment.deploy(args.skip, args.purge_partial, args.purge_only)
+        deployment.deploy(args.skip, args.purge_partial, args.purge_only, args.purge_skip)
 
         elapsed = timeit.default_timer() - start_time
         logging.info("Elapsed time " + str(elapsed) + " seconds")

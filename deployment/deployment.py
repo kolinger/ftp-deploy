@@ -29,7 +29,7 @@ class Deployment:
         self.ftp = Ftp(self.config)
         self.failed = Queue()
 
-    def deploy(self, skip_before_and_after, purge_partial_enabled, purge_only_enabled):
+    def deploy(self, skip_before_and_after, purge_partial_enabled, purge_only_enabled, purge_skip_enabled):
         if purge_only_enabled:
             self.purge(purge_partial_enabled)
             return
@@ -137,7 +137,8 @@ class Deployment:
         self.index.upload()
         logging.info("Index uploaded")
 
-        self.purge(purge_partial_enabled)
+        if not purge_skip_enabled:
+            self.purge(purge_partial_enabled)
 
         if len(self.config.run_after) > 0:
             if skip_before_and_after:
