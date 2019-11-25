@@ -10,6 +10,7 @@ class Config:
     threads = 2
     local = None
     secure = False
+    implicit = False
     passive = True
     host = None
     port = 21
@@ -51,6 +52,9 @@ class Config:
 
             if "secure" in inner:
                 self.secure = inner["secure"]
+
+            if "implicit" in inner:
+                self.implicit = inner["implicit"]
 
             if "passive" in inner:
                 self.passive = inner["passive"]
