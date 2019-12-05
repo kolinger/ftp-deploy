@@ -1,5 +1,4 @@
 import ftplib
-from ftplib import FTP, FTP_TLS, error_perm
 from io import BytesIO
 import logging
 import os
@@ -9,6 +8,14 @@ from subprocess import check_output, CalledProcessError, STDOUT
 
 from deployment.config import ConfigException
 from deployment.exceptions import MessageException
+
+
+class FTP_TLS(ftplib.FTP_TLS):
+    def ntransfercmd(self, cmd, rest=None):
+        conn, size = ftplib.FTP.ntransfercmd(self, cmd, rest)
+        if self._prot_p:
+            conn = self.context.wrap_socket(conn, server_hostname=self.host, session=self.sock.session)
+        return conn, size
 
 
 class Ftp:
@@ -37,7 +44,7 @@ class Ftp:
             if self.config.secure:
                 self.ftp = FTP_TLS(**parameters)
             else:
-                self.ftp = FTP(**parameters)
+                self.ftp = ftplib.FTP(**parameters)
 
             self.ftp.connect(self.config.host)
 
@@ -45,10 +52,6 @@ class Ftp:
                 self.ftp.prot_p()
 
             self.ftp.login(self.config.user, self.config.password)
-
-            if self.config.secure and not self.config.implicit:
-                self.ftp.prot_p()
-
             self.ftp.set_pasv(self.config.passive)
 
         return self.ftp
@@ -63,7 +66,7 @@ class Ftp:
 
         try:
             self.ftp.mkd(directory)
-        except error_perm as e:
+        except ftplib.error_perm as e:
             message = str(e)
             if message.startswith("550"):
                 return  # already exists - ignore
@@ -103,7 +106,7 @@ class Ftp:
             buffer = BytesIO()
             self.ftp.retrbinary("RETR " + file, buffer.write)
             return buffer.getvalue()
-        except error_perm as e:
+        except ftplib.error_perm as e:
             message = str(e)
             if message.startswith("550"):
                 return None  # not exists - ignore
@@ -120,12 +123,12 @@ class Ftp:
 
         try:
             self.ftp.delete(target)
-        except error_perm:
+        except ftplib.error_perm:
             directory = target
             while True:
                 try:
                     self.ftp.rmd(directory)
-                except error_perm as e:
+                except ftplib.error_perm as e:
                     message = str(e)
                     if message.startswith("550"):  # directory not exists
                         return
