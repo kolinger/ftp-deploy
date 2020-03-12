@@ -195,11 +195,17 @@ class Deployment:
                         pass
 
             for base, names in base_folders.items():
-                objects = self.ftp.list_directory_contents(base)
-                for object in objects:
-                    for name in names:
-                        if re.search(r"^" + name + r"_[0-9]+\.tmp$", object):
-                            to_delete.append(base + "/" + object)
+                try:
+                    objects = self.ftp.list_directory_contents(base)
+                    for object in objects:
+                        for name in names:
+                            if re.search(r"^" + name + r"_[0-9]+\.tmp$", object):
+                                to_delete.append(base + "/" + object)
+                except error_perm as e:
+                    message = str(e)
+                    if message.startswith("550"):  # directory not exists
+                        continue
+                    raise e
 
             purge = Purge(self.config)
             for path in to_delete:
