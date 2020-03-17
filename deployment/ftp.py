@@ -173,13 +173,14 @@ class Ftp:
                 except ftplib.error_perm:
                     self.mlsd = False
 
-                    lines = []
-                    self.ftp.dir(directory, lines.append)
-                    for line in lines:
-                        parts = re.split(r"\s+", line)
-                        name = parts[-1]
-                        type = "dir" if parts[0][0] == "d" else "file"
-                        objects.append((name, type))
+            if not self.mlsd:
+                lines = []
+                self.ftp.dir(directory, lines.append)
+                for line in lines:
+                    parts = re.split(r"\s+", line)
+                    name = parts[-1]
+                    type = "dir" if parts[0][0] == "d" else "file"
+                    objects.append((name, type))
         else:
             self.ftp.cwd(directory)
             for object in self.ftp.nlst():
