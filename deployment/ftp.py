@@ -116,10 +116,14 @@ class Ftp:
     def delete_file(self, file):
         self.connect()
 
+        self._delete_sanity_check(file)
+
         self.ftp.delete(file)
 
     def delete_file_or_directory(self, target):
         self.connect()
+
+        self._delete_sanity_check(target)
 
         try:
             self.ftp.delete(target)
@@ -137,6 +141,8 @@ class Ftp:
     def delete_directory(self, directory, verify=False):
         self.connect()
 
+        self._delete_sanity_check(directory)
+
         try:
             self.ftp.rmd(directory)
         except ftplib.error_perm:
@@ -149,6 +155,10 @@ class Ftp:
                 if "failed to change directory" in str(e).lower():
                     return
                 raise
+
+    def _delete_sanity_check(self, path):
+        if ".." in path:
+            raise InvalidStateException("dot directory detected")
 
     def list_directory_contents(self, directory, extended=False):
         self.connect()
@@ -242,3 +252,7 @@ class Ftp:
                     raise MessageException("interface " + bind + " not found")
                 else:
                     raise e
+
+
+class InvalidStateException(Exception):
+    pass
