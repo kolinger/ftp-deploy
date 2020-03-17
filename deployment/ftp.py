@@ -158,31 +158,36 @@ class Ftp:
             if self.mlsd:
                 try:
                     for name, entry in self.ftp.mlsd(directory):
-                        if name == "." or name == "..":
-                            continue
-
                         objects.append((name, entry["type"]))
 
-                    return objects
                 except ftplib.error_perm:
                     self.mlsd = False
 
-            lines = []
-            self.ftp.dir(directory, lines.append)
-            for line in lines:
-                parts = re.split(r"\s+", line)
-                name = parts[-1]
-                type = "dir" if parts[0][0] == "d" else "file"
-                objects.append((name, type))
+                    lines = []
+                    self.ftp.dir(directory, lines.append)
+                    for line in lines:
+                        parts = re.split(r"\s+", line)
+                        name = parts[-1]
+                        type = "dir" if parts[0][0] == "d" else "file"
+                        objects.append((name, type))
         else:
             self.ftp.cwd(directory)
             for object in self.ftp.nlst():
-                if object == "." or object == "..":
-                    continue
-
                 objects.append(object)
 
-        return objects
+        filtered = []
+        for object in objects:
+            if isinstance(object, tuple):
+                name, type = object
+            else:
+                name = object
+
+            if name == "." or name == "..":
+                continue
+
+            filtered.append(object)
+
+        return filtered
 
     def close(self):
         if self.ftp:
