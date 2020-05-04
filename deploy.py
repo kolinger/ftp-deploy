@@ -79,6 +79,15 @@ if __name__ == '__main__':
     except MessageException as e:
         logging.error(str(e))
         sys.exit(1)
+    except SystemExit as e:
+        if e.code != 0:
+            logging.critical("Terminated with code %s" % e.code)
+    except KeyboardInterrupt:
+        logging.critical("Terminated by user")
+        sys.exit(1)
+    except:
+        logging.exception(sys.exc_info()[0])
+        sys.exit(1)
     finally:
         if deployment is not None:
             deployment.close()

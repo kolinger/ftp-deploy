@@ -8,6 +8,8 @@ from threading import Thread
 import time
 from time import sleep
 
+import sys
+
 from deployment.composer import Composer
 from deployment.counter import Counter
 from deployment.ftp import Ftp
@@ -15,14 +17,17 @@ from deployment.index import Index
 from deployment.process import Process
 from deployment.purge import Purge
 from deployment.scanner import Scanner
-from deployment.worker import Worker
+from deployment.worker import Worker, WorkersState
 
 
 class Deployment:
-    mapping = {}
-    extensions = []
+    workers_state = None
 
     def __init__(self, config):
+        self.mapping = {}
+        self.extensions = []
+        self.workers = []
+
         self.config = config
         self.counter = Counter()
         self.index = Index(self.config)
@@ -215,19 +220,30 @@ class Deployment:
             logging.info("Purging done, " + str(files) + " files and " + str(directories) + " directories")
 
     def process_queue(self, queue, mode):
-        workers = []
+        self.workers_state = WorkersState()
+
+        self.workers = []
         for number in range(self.config.threads):
-            worker = Worker(queue, self.config, self.counter, self.index, self.failed, mode, self.mapping)
+            worker = Worker(
+                queue, self.config, self.counter, self.index, self.failed, mode, self.mapping, self.workers_state
+            )
             worker.start()
-            workers.append(worker)
+            self.workers.append(worker)
 
-        Thread(target=self.monitor, args=(workers, queue), daemon=True).start()
+        Thread(target=self.monitor, args=(self.workers, queue), daemon=True).start()
 
-        queue.join()
+        with queue.all_tasks_done:
+            while queue.unfinished_tasks and self.workers_state.running:
+                try:
+                    queue.all_tasks_done.wait(0.1)
+                except TimeoutError:
+                    pass
 
-        for worker in workers:
-            worker.stop()
-            worker.join()
+        if queue.unfinished_tasks:
+            logging.error("Queue failed")
+            sys.exit(1)
+
+        self.workers_state.stop()
 
     def monitor(self, workers, queue):
         size = queue.qsize()
