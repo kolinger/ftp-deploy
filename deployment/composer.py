@@ -2,11 +2,16 @@ import logging
 import os
 import shutil
 
+import sys
+
 from deployment.checksum import sha256_checksum
 from deployment.process import Process
 
 
 class Composer:
+    temporary_lock = None
+    temporary_json = None
+
     def __init__(self, config):
         self.config = config
 
@@ -22,41 +27,57 @@ class Composer:
         temporary = os.path.realpath(temporary).replace("\\", "/")
         os.makedirs(temporary, exist_ok=True)
 
-        if os.path.exists(lock):
-            previous_lock = temporary + "/composer.lock"
-            if os.path.exists(previous_lock):
-                checksum = sha256_checksum(lock)
-                previous_checksum = sha256_checksum(previous_lock)
-                if checksum == previous_checksum:
-                    logging.info("Composer is up to date, skipping")
-                    return "/" + prefix + "/vendor", temporary + "/vendor"
+        self.temporary_lock = temporary + "/composer.lock"
+        self.temporary_json = temporary + "/composer.json"
 
-            shutil.copy(lock, temporary + "/composer.lock")
+        try:
+            if os.path.exists(lock):
+                if os.path.exists(self.temporary_lock):
+                    checksum = sha256_checksum(lock)
+                    previous_checksum = sha256_checksum(self.temporary_lock)
+                    if checksum == previous_checksum:
+                        logging.info("Composer is up to date, skipping")
+                        return "/" + prefix + "/vendor", temporary + "/vendor"
 
-        if not os.path.exists(configuration):
-            logging.error("Composer configuration " + configuration + " not found")
-            exit(1)
+                shutil.copy(lock, self.temporary_lock)
 
-        shutil.copyfile(configuration, temporary + "/composer.json")
+            if not os.path.exists(configuration):
+                logging.error("Composer configuration " + configuration + " not found")
+                self.cleanup()
+                sys.exit(1)
 
-        def output_callback(line):
-            logging.info("composer: " + line)
+            shutil.copyfile(configuration, self.temporary_json)
 
-        command = [
-            "composer",
-            "install",
-            "--no-dev",
-            "--prefer-dist",
-            "--no-suggest",
-            "--no-progress",
-            "--ignore-platform-reqs",
-            "--no-interaction",
-            "--working-dir",
-            temporary
-        ]
-        process = Process(" ".join(command)).execute(None, output_callback)
-        if process.return_code() != 0:
-            logging.error("Composer failed with return code: " + str(process.return_code()))
-            exit(1)
+            def output_callback(line):
+                logging.info("composer: " + line)
+
+            command = [
+                "composer",
+                "install",
+                "--no-dev",
+                "--prefer-dist",
+                "--no-suggest",
+                "--no-progress",
+                "--ignore-platform-reqs",
+                "--no-interaction",
+                "--working-dir",
+                temporary
+            ]
+            process = Process(" ".join(command)).execute(None, output_callback)
+            if process.return_code() != 0:
+                logging.error("Composer failed with return code: " + str(process.return_code()))
+                self.cleanup()
+                sys.exit(1)
+
+        except:
+            self.cleanup()
+            raise
 
         return "/" + prefix + "/vendor", temporary + "/vendor"
+
+    def cleanup(self):
+        if os.path.exists(self.temporary_lock):
+            os.remove(self.temporary_lock)
+
+        if os.path.exists(self.temporary_json):
+            os.remove(self.temporary_json)
