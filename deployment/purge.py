@@ -2,9 +2,11 @@ import ftplib
 import logging
 from queue import Empty
 from queue import Queue
+import sys
 from threading import Thread
 
 from deployment.ftp import Ftp
+from deployment.worker import WorkersState
 
 
 class Purge:
@@ -18,6 +20,7 @@ class Purge:
 
     def __init__(self, config):
         self.config = config
+        self.shared_state = WorkersState()
 
     def add(self, path):
         self.queue.put((path, self.TYPE_UNKNOWN))
@@ -27,14 +30,22 @@ class Purge:
         threads = self.config.threads if self.config.purge_threads is None else self.config.purge_threads
         logging.info("Using " + str(threads) + " threads")
         for number in range(threads):
-            worker = Worker(self.queue, self.config)
+            worker = Worker(self.queue, self.config, self.shared_state)
             worker.start()
             self.workers.append(worker)
 
-        self.queue.join()
+        with self.queue.all_tasks_done:
+            while self.queue.unfinished_tasks and self.shared_state.running:
+                try:
+                    self.queue.all_tasks_done.wait(0.1)
+                except TimeoutError:
+                    pass
 
+        if self.queue.unfinished_tasks:
+            logging.error("Worker queue failed to process")
+
+        self.shared_state.stop()
         for worker in self.workers:
-            worker.stop()
             worker.join()
 
         return self.count()
@@ -56,85 +67,93 @@ class Worker(Thread):
     files = 0
     not_empty = {}
 
-    def __init__(self, queue, config):
-        super(Worker, self).__init__()
-        self.daemon = True
-
+    def __init__(self, queue, config, shared_state):
+        super(Worker, self).__init__(daemon=True)
         self.queue = queue
         self.config = config
+        self.shared_state = shared_state
         self.ftp = Ftp(self.config)
 
     def run(self):
-        while self.running:
-            try:
-                parent, type = self.queue.get_nowait()
-
+        try:
+            while self.shared_state.running:
                 try:
-                    if type is Purge.TYPE_UNKNOWN or type is Purge.TYPE_LISTING:
-                        logging.info("Cleaning " + parent)
+                    parent, type = self.queue.get_nowait()
 
-                    if type is Purge.TYPE_UNKNOWN:
-                        try:
-                            self.retry(self.ftp.delete_file, {"file": parent}, [
-                                "invalid argument",
-                                "operation failed",
-                                "is a directory",
-                            ])
-                        except ExpectedError:
-                            type = Purge.TYPE_LISTING
+                    try:
+                        if type is Purge.TYPE_UNKNOWN or type is Purge.TYPE_LISTING:
+                            logging.info("Cleaning " + parent)
 
-                    elif type is Purge.TYPE_FILE:
-                        try:
-                            self.retry(self.ftp.delete_file, {"file": parent}, "operation failed")
-                            self.files += 1
-                        except ExpectedError:
-                            pass
+                        if type is Purge.TYPE_UNKNOWN:
+                            try:
+                                self.retry(self.ftp.delete_file, {"file": parent}, [
+                                    "invalid argument",
+                                    "operation failed",
+                                    "is a directory",
+                                ])
+                            except ExpectedError:
+                                type = Purge.TYPE_LISTING
 
-                    elif type is Purge.TYPE_DIRECTORY:
-                        try:
-                            self.retry(self.ftp.delete_directory, {"directory": parent, "verify": True}, [
-                                "directory not empty",
-                                "operation failed",
-                            ])
-                            self.directories += 1
-                        except ExpectedError:
-                            if parent not in self.not_empty:
-                                self.not_empty[parent] = 0
-                            self.not_empty[parent] += 1
+                        elif type is Purge.TYPE_FILE:
+                            try:
+                                self.retry(self.ftp.delete_file, {"file": parent}, "operation failed")
+                                self.files += 1
+                            except ExpectedError:
+                                pass
 
-                            if self.not_empty[parent] > 5:
-                                self.not_empty[parent] = -20
-                                self.queue.put((parent, Purge.TYPE_LISTING))
-                            else:
-                                self.queue.put((parent, Purge.TYPE_DIRECTORY))
+                        elif type is Purge.TYPE_DIRECTORY:
+                            try:
+                                self.retry(self.ftp.delete_directory, {"directory": parent, "verify": True}, [
+                                    "directory not empty",
+                                    "operation failed",
+                                ])
+                                self.directories += 1
+                            except ExpectedError:
+                                if parent not in self.not_empty:
+                                    self.not_empty[parent] = 0
+                                self.not_empty[parent] += 1
 
-                    if type is Purge.TYPE_LISTING:
-                        parameters = {
-                            "directory": parent,
-                            "extended": True,
-                        }
-                        for path, kind in self.retry(self.ftp.list_directory_contents, parameters, fallback=[]):
-                            path = parent + "/" + path
-                            if kind == "file":
-                                self.queue.put((path, Purge.TYPE_FILE))
-                            else:
-                                self.queue.put((path, Purge.TYPE_LISTING))
+                                if self.not_empty[parent] > 5:
+                                    self.not_empty[parent] = -20
+                                    self.queue.put((parent, Purge.TYPE_LISTING))
+                                else:
+                                    self.queue.put((parent, Purge.TYPE_DIRECTORY))
 
-                        self.queue.put((parent, Purge.TYPE_DIRECTORY))
+                        if type is Purge.TYPE_LISTING:
+                            parameters = {
+                                "directory": parent,
+                                "extended": True,
+                            }
+                            for path, kind in self.retry(self.ftp.list_directory_contents, parameters, fallback=[]):
+                                path = parent + "/" + path
+                                if kind == "file":
+                                    self.queue.put((path, Purge.TYPE_FILE))
+                                else:
+                                    self.queue.put((path, Purge.TYPE_LISTING))
 
-                    self.queue.task_done()
-                except (KeyboardInterrupt, SystemExit):
-                    raise
-                except ftplib.all_errors as e:
-                    self.ftp.close()
+                            self.queue.put((parent, Purge.TYPE_DIRECTORY))
 
-                    logging.exception(e)
+                        self.queue.task_done()
+                    except (KeyboardInterrupt, SystemExit):
+                        raise
+                    except ftplib.all_errors as e:
+                        self.ftp.close()
 
-                    self.queue.task_done()
-            except Empty:
-                pass
+                        logging.exception(e)
 
-        self.ftp.close()
+                        self.queue.task_done()
+                except Empty:
+                    pass
+
+        except (KeyboardInterrupt, SystemExit):
+            self.shared_state.stop()
+            raise
+        except:
+            self.shared_state.stop()
+            logging.exception(sys.exc_info()[0])
+        finally:
+            self.ftp.close()
+            self.running = False
 
     def stop(self):
         self.running = False

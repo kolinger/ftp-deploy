@@ -4,11 +4,10 @@ import os
 import queue
 from queue import Queue
 import re
+import sys
 from threading import Thread
 import time
 from time import sleep
-
-import sys
 
 from deployment.composer import Composer
 from deployment.counter import Counter
@@ -240,10 +239,12 @@ class Deployment:
                     pass
 
         if queue.unfinished_tasks:
-            logging.error("Queue failed")
+            logging.error("Worker queue failed to process")
             sys.exit(1)
 
         self.workers_state.stop()
+        for worker in self.workers:
+            worker.join()
 
     def monitor(self, workers, queue):
         size = queue.qsize()
