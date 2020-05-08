@@ -5,6 +5,7 @@ import multiprocessing
 from multiprocessing import Pool, cpu_count, Manager
 import os
 from queue import Empty
+import re
 import signal
 import sys
 
@@ -88,7 +89,9 @@ class Scanner:
                                 if not ignored or ignored == path:
                                     if ignored != path:
                                         scan_queue.put((path, prefix))
-                                    result_queue.put((path[prefix:], None))
+
+                                    if not ignored or ignored != path:
+                                        result_queue.put((path[prefix:], None))
 
                     scan_queue.task_done()
                 except Empty:
@@ -140,7 +143,8 @@ class Scanner:
 
     def is_ignored(self, path):
         for pattern in self.ignored:
-            if pattern.startswith("/") and path.startswith(pattern):
+            root = pattern.startswith("/") or re.match(r"^[a-z]+:/", pattern, flags=re.I)
+            if root and path.startswith(pattern):
                 return pattern
             elif pattern in path:
                 return pattern
