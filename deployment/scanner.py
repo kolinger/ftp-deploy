@@ -8,6 +8,7 @@ from queue import Empty
 import re
 import signal
 import sys
+from time import sleep, time
 
 from deployment.checksum import sha256_checksum
 from deployment.index import Index
@@ -25,6 +26,8 @@ class Scanner:
         scan_queue = Manager().Queue()
         hash_queue = Manager().Queue()
         result_queue = Manager().Queue()
+        running = Manager().Value(bool, True)
+        running_count = Manager().Value(int, 0)
 
         scanning_pool = None
         hashing_pool = None
@@ -36,8 +39,12 @@ class Scanner:
             hashing_pool = Pool(processes=worker_count, initializer=setup_logging)
             signal.signal(signal.SIGINT, original_sigint_handler)
             for count in range(0, worker_count):
-                scanning_pool.apply_async(self.scanning_worker, (scan_queue, hash_queue, result_queue))
-                hashing_pool.apply_async(self.hashing_worker, (hash_queue, result_queue))
+                scanning_pool.apply_async(self.scanning_worker, (
+                    running, running_count, scan_queue, hash_queue, result_queue
+                ))
+                hashing_pool.apply_async(self.hashing_worker, (
+                    running, running_count, hash_queue, result_queue
+                ))
 
             for root in self.roots:
                 self.prefix = prefix = len(root)
@@ -52,9 +59,12 @@ class Scanner:
             except Empty:
                 pass
         finally:
-            if scanning_pool:
+            running.set(False)
+            deadline = time() + 10
+            while running_count.get() > 0 and deadline < time():
+                sleep(0.1)
+            if running_count.get() > 0:
                 scanning_pool.terminate()
-            if hashing_pool:
                 hashing_pool.terminate()
 
         keys = list(self.result.keys())
@@ -68,9 +78,11 @@ class Scanner:
 
         return ordered
 
-    def scanning_worker(self, scan_queue, hash_queue, result_queue):
+    def scanning_worker(self, running, running_count, scan_queue, hash_queue, result_queue):
+        running_count.set(running_count.get() + 1)
+
         try:
-            while True:
+            while running.get():
                 try:
                     parent, prefix = scan_queue.get_nowait()
 
@@ -102,9 +114,13 @@ class Scanner:
         except:
             logging.exception(sys.exc_info()[0])
 
-    def hashing_worker(self, hash_queue, result_queue):
+        running_count.set(running_count.get() - 1)
+
+    def hashing_worker(self, running, running_count, hash_queue, result_queue):
+        running_count.set(running_count.get() + 1)
+
         try:
-            while True:
+            while running.get():
                 try:
                     path, prefix = hash_queue.get_nowait()
 
@@ -119,6 +135,8 @@ class Scanner:
             pass
         except:
             logging.exception(sys.exc_info()[0])
+
+        running_count.set(running_count.get() - 1)
 
     def format_ignored(self, ignored, mapping):
         ignored.append(Index.FILE_NAME)

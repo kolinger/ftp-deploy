@@ -99,7 +99,6 @@ class Worker(Thread):
                     pass
         except (KeyboardInterrupt, SystemExit):
             self.shared_state.stop()
-            raise
         except:
             self.shared_state.stop()
             logging.exception(sys.exc_info()[0])
