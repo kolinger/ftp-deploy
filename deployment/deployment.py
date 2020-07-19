@@ -33,14 +33,17 @@ class Deployment:
         self.ftp = Ftp(self.config)
         self.failed = Queue()
 
-    def deploy(self, skip_before_and_after, purge_partial_enabled, purge_only_enabled, purge_skip_enabled):
+    def deploy(self, skip_before_and_after, purge_partial_enabled, purge_only_enabled, purge_skip_enabled, force):
         if purge_only_enabled:
             self.purge(purge_partial_enabled)
             return
 
-        result = self.index.read()
-        remove = result["remove"]
-        contents = result["contents"]
+        remove = True
+        contents = {}
+        if not force:
+            result = self.index.read()
+            remove = result["remove"]
+            contents = result["contents"]
         roots = [self.config.local]
 
         if len(self.config.purge_partial) == 0:

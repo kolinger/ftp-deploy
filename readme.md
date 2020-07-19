@@ -94,6 +94,8 @@ Usage
   - Purge threads can be overridden with `-pt|--purge-threads` or skipped with `-ps|--purge-skip`
   
   - Bind interface or source address can by specified with `-b|--bind`.
+  
+  - New/whole upload can be forced with `-f|--force`
 
 Upgrade
 -------
