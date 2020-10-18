@@ -19,6 +19,8 @@ Configuration is done via .json files.
     "connection": {
         "threads": 2,
         "secure": false,
+        "passive": true,
+        "passive_workaround": false,
         "host": "hostname",
         "port": 21,
         "user": "username",

@@ -4,18 +4,47 @@ import logging
 import os
 import platform
 import re
+import socket
 from subprocess import check_output, CalledProcessError, STDOUT
 
 from deployment.config import ConfigException
 from deployment.exceptions import MessageException
 
 
+class FTP(ftplib.FTP):
+    passive_workaround = False
+
+    def makepasv(self):
+        if self.af == socket.AF_INET:
+            host, port = ftplib.parse227(self.sendcmd("PASV"))
+        else:
+            host, port = ftplib.parse229(self.sendcmd("EPSV"), self.sock.getpeername())
+
+        if self.passive_workaround:
+            return self.host, port
+
+        return host, port
+
+
 class FTP_TLS(ftplib.FTP_TLS):
+    passive_workaround = False
+
     def ntransfercmd(self, cmd, rest=None):
         conn, size = ftplib.FTP.ntransfercmd(self, cmd, rest)
         if self._prot_p:
             conn = self.context.wrap_socket(conn, server_hostname=self.host, session=self.sock.session)
         return conn, size
+
+    def makepasv(self):
+        if self.af == socket.AF_INET:
+            host, port = ftplib.parse227(self.sendcmd("PASV"))
+        else:
+            host, port = ftplib.parse229(self.sendcmd("EPSV"), self.sock.getpeername())
+
+        if self.passive_workaround:
+            return self.host, port
+
+        return host, port
 
 
 class Ftp:
@@ -44,7 +73,10 @@ class Ftp:
             if self.config.secure:
                 self.ftp = FTP_TLS(**parameters)
             else:
-                self.ftp = ftplib.FTP(**parameters)
+                self.ftp = FTP(**parameters)
+
+            if self.config.passive_workaround:
+                self.ftp.passive_workaround = True
 
             self.ftp.connect(self.config.host)
 
@@ -71,6 +103,11 @@ class Ftp:
             if message.startswith("550"):
                 return  # already exists - ignore
             raise e
+
+    def chmod(self, path, chmod):
+        self.connect()
+
+        self.ftp.voidcmd("SITE CHMOD %s %s" % (chmod, path))
 
     def upload_file(self, local, remote, callback, ensure_directory=True):
         self.connect()

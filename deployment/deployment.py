@@ -198,6 +198,7 @@ class Deployment:
                         self.ftp.rename(current, new)
                         to_delete.append(new)
                         self.ftp.create_directory(current)
+                        self.ftp.chmod(current, 777)
                     except error_perm:
                         pass
 

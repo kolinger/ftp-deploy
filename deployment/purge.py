@@ -91,7 +91,7 @@ class Worker(Thread):
                                     "operation failed",
                                     "is a directory",
                                 ])
-                            except ExpectedError:
+                            except (ExpectedError, EOFError):
                                 type = Purge.TYPE_LISTING
 
                         elif type is Purge.TYPE_FILE:
@@ -108,7 +108,7 @@ class Worker(Thread):
                                     "operation failed",
                                 ])
                                 self.directories += 1
-                            except ExpectedError:
+                            except (ExpectedError, EOFError):
                                 if parent not in self.not_empty:
                                     self.not_empty[parent] = 0
                                 self.not_empty[parent] += 1
@@ -124,14 +124,17 @@ class Worker(Thread):
                                 "directory": parent,
                                 "extended": True,
                             }
-                            for path, kind in self.retry(self.ftp.list_directory_contents, parameters, fallback=[]):
-                                path = parent + "/" + path
-                                if kind == "file":
-                                    self.queue.put((path, Purge.TYPE_FILE))
-                                else:
-                                    self.queue.put((path, Purge.TYPE_LISTING))
+                            try:
+                                for path, kind in self.retry(self.ftp.list_directory_contents, parameters, fallback=[]):
+                                    path = parent + "/" + path
+                                    if kind == "file":
+                                        self.queue.put((path, Purge.TYPE_FILE))
+                                    else:
+                                        self.queue.put((path, Purge.TYPE_LISTING))
 
-                            self.queue.put((parent, Purge.TYPE_DIRECTORY))
+                                self.queue.put((parent, Purge.TYPE_DIRECTORY))
+                            except EOFError:
+                                pass
 
                         self.queue.task_done()
                     except (KeyboardInterrupt, SystemExit):

@@ -12,6 +12,7 @@ class Config:
     secure = False
     implicit = False
     passive = True
+    passive_workaround = False
     host = None
     port = 21
     user = None
@@ -58,6 +59,9 @@ class Config:
 
             if "passive" in inner:
                 self.passive = inner["passive"]
+
+            if "passive_workaround" in inner:
+                self.passive_workaround = inner["passive_workaround"]
 
             if self.is_defined("host", inner, "connection.host"):
                 self.host = inner["host"]
