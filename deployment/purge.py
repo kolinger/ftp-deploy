@@ -1,5 +1,6 @@
 import ftplib
 import logging
+import os
 from queue import Empty
 from queue import Queue
 import sys
@@ -98,6 +99,9 @@ class Worker(Thread):
                             try:
                                 self.retry(self.ftp.delete_file, {"file": parent}, "operation failed")
                                 self.files += 1
+                            except EOFError:
+                                parent = os.path.dirname(parent)
+                                type = Purge.TYPE_LISTING
                             except ExpectedError:
                                 pass
 
