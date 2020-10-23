@@ -77,6 +77,8 @@ class Config:
 
             if self.is_defined("root", inner, "connection.root"):
                 self.remote = inner["root"]
+                if self.remote == "/":
+                    self.remote = ""
 
             if "bind" in inner:
                 self.bind = inner["bind"]
