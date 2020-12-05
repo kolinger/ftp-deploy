@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-
 import sys
 
 from deployment.checksum import sha256_checksum
@@ -63,6 +62,10 @@ class Composer:
                 "--working-dir",
                 temporary
             ]
+
+            if os.name == "nt":
+                command.extend(["&", "exit"])  # exit code fix
+
             process = Process(" ".join(command)).execute(None, output_callback)
             if process.return_code() != 0:
                 logging.error("Composer failed with return code: " + str(process.return_code()))
