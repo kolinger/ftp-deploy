@@ -55,7 +55,6 @@ class Composer:
                 "install",
                 "--no-dev",
                 "--prefer-dist",
-                "--no-suggest",
                 "--no-progress",
                 "--ignore-platform-reqs",
                 "--no-interaction",
