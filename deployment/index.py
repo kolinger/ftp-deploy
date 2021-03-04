@@ -118,6 +118,10 @@ class Index:
 
         os.remove(local)
 
+    def remove(self):
+        self.close()
+        os.remove(self.config.local + self.FILE_NAME)
+
     def close(self):
         if self.file is not None:
             self.file.close()

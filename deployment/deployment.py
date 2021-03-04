@@ -33,7 +33,12 @@ class Deployment:
         self.ftp = Ftp(self.config)
         self.failed = Queue()
 
+        self.dry_run = False
+
     def deploy(self, skip_before_and_after, purge_partial_enabled, purge_only_enabled, purge_skip_enabled, force):
+        if self.dry_run:
+            logging.info("Executing DRY RUN")
+
         if purge_only_enabled:
             self.purge(purge_partial_enabled)
             return
@@ -73,7 +78,7 @@ class Deployment:
             self.config.ignore.append(remote)
 
         if len(self.config.run_before) > 0:
-            if skip_before_and_after:
+            if skip_before_and_after or self.dry_run:
                 logging.info("Skipping before commands")
             else:
                 logging.info("Running before commands:")
@@ -140,15 +145,19 @@ class Deployment:
 
             logging.info("Removing done")
 
-        logging.info("Uploading index...")
-        self.index.upload()
-        logging.info("Index uploaded")
+        if self.dry_run:
+            logging.warning("Not uploading index in dry run")
+            self.index.remove()
+        else:
+            logging.info("Uploading index...")
+            self.index.upload()
+            logging.info("Index uploaded")
 
         if not purge_skip_enabled:
             self.purge(purge_partial_enabled)
 
         if len(self.config.run_after) > 0:
-            if skip_before_and_after:
+            if skip_before_and_after or self.dry_run:
                 logging.info("Skipping after commands")
             else:
                 logging.info("Running after commands:")
@@ -167,6 +176,10 @@ class Deployment:
         if len(self.config.purge) == 0:
             logging.info("Nothing to purge")
         else:
+            if self.dry_run:
+                logging.warning("Purge is not available in dry run")
+                return
+
             logging.info("Purging...")
 
             to_purge = self.config.purge
@@ -222,27 +235,44 @@ class Deployment:
 
             logging.info("Purging done, " + str(files) + " files and " + str(directories) + " directories")
 
-    def process_queue(self, queue, mode):
+    def process_queue(self, item_queue, mode):
+        if self.dry_run:
+            if mode == "upload":
+                mode = "Uploading"
+            elif mode == "remove":
+                mode = "Removing"
+
+            while True:
+                try:
+                    path = item_queue.get_nowait()
+
+                    counter = self.counter.counter()
+                    logging.info("%s (%s) %s" % (mode, counter, path))
+                except queue.Empty:
+                    break
+
+            return
+
         self.workers_state = WorkersState()
 
         self.workers = []
         for number in range(self.config.threads):
             worker = Worker(
-                queue, self.config, self.counter, self.index, self.failed, mode, self.mapping, self.workers_state
+                item_queue, self.config, self.counter, self.index, self.failed, mode, self.mapping, self.workers_state
             )
             worker.start()
             self.workers.append(worker)
 
-        Thread(target=self.monitor, args=(self.workers, queue), daemon=True).start()
+        Thread(target=self.monitor, args=(self.workers, item_queue), daemon=True).start()
 
-        with queue.all_tasks_done:
-            while queue.unfinished_tasks and self.workers_state.running:
+        with item_queue.all_tasks_done:
+            while item_queue.unfinished_tasks and self.workers_state.running:
                 try:
-                    queue.all_tasks_done.wait(0.1)
+                    item_queue.all_tasks_done.wait(0.1)
                 except TimeoutError:
                     pass
 
-        if queue.unfinished_tasks:
+        if item_queue.unfinished_tasks:
             logging.error("Worker queue failed to process")
             sys.exit(1)
 

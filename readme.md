@@ -99,6 +99,8 @@ Usage
   
   - New/whole upload can be forced with `-f|--force`
 
+  - Dry run can be set with `--dry-run`
+
 Upgrade
 -------
 

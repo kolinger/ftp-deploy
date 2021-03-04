@@ -32,6 +32,7 @@ try:
         parser.add_argument("-pt", "--purge-threads", help="override config threads", default=None, type=int)
         parser.add_argument("-b", "--bind", help="bind interface or source address", default=None)
         parser.add_argument("-f", "--force", action="store_true", help="force whole upload", default=False)
+        parser.add_argument("--dry-run", action="store_true", help="just report changes", default=False)
         args = parser.parse_args()
 
         deployment = None
@@ -71,6 +72,7 @@ try:
             logging.info("Using " + str(config.threads) + " threads")
 
             deployment = Deployment(config)
+            deployment.dry_run = args.dry_run
             deployment.deploy(args.skip, args.purge_partial, args.purge_only, args.purge_skip, args.force)
 
             elapsed = timeit.default_timer() - start_time
