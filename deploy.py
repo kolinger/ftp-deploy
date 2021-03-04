@@ -36,6 +36,7 @@ try:
         args = parser.parse_args()
 
         deployment = None
+        config = None
         try:
             fileName = "deploy"
             if len(args.name) > 0:
@@ -87,6 +88,11 @@ try:
             if e.code != 0:
                 logging.critical("Terminated with code %s" % e.code)
         except KeyboardInterrupt:
+            if config and deployment:
+                index_path = config.local + deployment.index.FILE_NAME
+                if os.path.exists(index_path):
+                    deployment.index.close()
+                    os.remove(index_path)
             logging.critical("Terminated by user")
             sys.exit(1)
         except:
