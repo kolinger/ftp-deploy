@@ -136,7 +136,7 @@ class Worker(Thread):
                 self.percent = 100
             if self.next_percent_update < time():
                 logging.info(self.prefix + " [" + str(self.percent) + "%]")
-            self.next_percent_update = time() + 2
+                self.next_percent_update = time() + 2
 
     def apply_mapping(self, path):
         for remote, local in self.mapping.items():
