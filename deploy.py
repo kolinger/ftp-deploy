@@ -10,6 +10,7 @@ try:
     from deployment.config import Config
     from deployment.deployment import Deployment
     from deployment.exceptions import MessageException
+    from deployment.composer import Composer
 
     if __name__ == '__main__':
         logger = logging.getLogger()
@@ -33,6 +34,7 @@ try:
         parser.add_argument("-b", "--bind", help="bind interface or source address", default=None)
         parser.add_argument("-f", "--force", action="store_true", help="force whole upload", default=False)
         parser.add_argument("--dry-run", action="store_true", help="just report changes", default=False)
+        parser.add_argument("--clear-composer", action="store_true", help="clear composer and exit", default=False)
         args = parser.parse_args()
 
         deployment = None
@@ -66,6 +68,12 @@ try:
                 file.setLevel(logging.INFO)
                 file.setFormatter(formatter)
                 logger.addHandler(file)
+
+            if args.clear_composer:
+                logging.info("Clearing temporary composer directory")
+                Composer(config).clear()
+                logging.info("Done")
+                sys.exit(0)
 
             start_time = timeit.default_timer()
             logging.info("Deploying configuration with name " + config.name)

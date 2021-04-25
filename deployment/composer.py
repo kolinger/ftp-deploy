@@ -14,38 +14,38 @@ class Composer:
     def __init__(self, config):
         self.config = config
 
+        self.root = self.config.local.rstrip("/")
+        self.prefix = os.path.dirname(self.config.composer)
+        self.configuration = self.root + "/" + self.config.composer
+        self.lock = self.configuration.replace(".json", ".lock")
+        self.temporary = self.root + "/../.ftp-deploy/" + os.path.basename(self.root) + "/" + self.prefix
+
     def process(self):
         logging.info("Processing composer")
 
-        root = self.config.local.rstrip("/")
-        prefix = os.path.dirname(self.config.composer)
-        configuration = root + "/" + self.config.composer
-        lock = configuration.replace(".json", ".lock")
-
-        temporary = root + "/../.ftp-deploy/" + os.path.basename(root) + "/" + prefix
-        temporary = os.path.realpath(temporary).replace("\\", "/")
+        temporary = os.path.realpath(self.temporary).replace("\\", "/")
         os.makedirs(temporary, exist_ok=True)
 
         self.temporary_lock = temporary + "/composer.lock"
         self.temporary_json = temporary + "/composer.json"
 
         try:
-            if os.path.exists(lock):
+            if os.path.exists(self.lock):
                 if os.path.exists(self.temporary_lock):
-                    checksum = sha256_checksum(lock)
+                    checksum = sha256_checksum(self.lock)
                     previous_checksum = sha256_checksum(self.temporary_lock)
                     if checksum == previous_checksum:
                         logging.info("Composer is up to date, skipping")
-                        return "/" + prefix + "/vendor", temporary + "/vendor"
+                        return "/" + self.prefix + "/vendor", temporary + "/vendor"
 
-                shutil.copy(lock, self.temporary_lock)
+                shutil.copy(self.lock, self.temporary_lock)
 
-            if not os.path.exists(configuration):
-                logging.error("Composer configuration " + configuration + " not found")
+            if not os.path.exists(self.configuration):
+                logging.error("Composer configuration " + self.configuration + " not found")
                 self.cleanup()
                 sys.exit(1)
 
-            shutil.copyfile(configuration, self.temporary_json)
+            shutil.copyfile(self.configuration, self.temporary_json)
 
             def output_callback(line):
                 logging.info("composer: " + line)
@@ -75,7 +75,7 @@ class Composer:
             self.cleanup()
             raise
 
-        return "/" + prefix + "/vendor", temporary + "/vendor"
+        return "/" + self.prefix + "/vendor", temporary + "/vendor"
 
     def cleanup(self):
         if os.path.exists(self.temporary_lock):
@@ -83,3 +83,6 @@ class Composer:
 
         if os.path.exists(self.temporary_json):
             os.remove(self.temporary_json)
+
+    def clear(self):
+        shutil.rmtree(os.path.dirname(self.temporary))
