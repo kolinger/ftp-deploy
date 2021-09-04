@@ -1,13 +1,14 @@
 High performance FTP(S) deploy
 ==============================
 
-Fastest FTP deploy possible. It uses specific blind mechanism and heavy multiprocessing and multithreading.
+Fastest FTP deploy possible. Specific blind upload mechanism is used together 
+with heavy multiprocessing and multithreading.
 
 Installation
 ------------
 
 1. Python 3 required
-2. Obtain sources ``git clone https://bitbucket.org/kolinger/ftp-deploy.git``
+2. Obtain sources ``git clone https://github.com/kolinger/ftp-deploy.git``
 3. Done
 
 Configuration
@@ -172,7 +173,7 @@ In such case full deploy needs to be done with `--force`.
 
 This is limiting mechanism, but it brings huge performance gains. No other mechanism can compare in effectivity.
 
-Local scanning na calculation of hashes is done in multiprocessing manner
+Local scanning and calculation of hashes is done in multiprocessing manner
 in order to fully initialize today's many core processors with NVMe storage.
 
 Upload, deletion, purging is all done in multithreaded manner where many parallel connections are used.
