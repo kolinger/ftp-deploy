@@ -2,13 +2,42 @@ High performance FTP(S) deploy
 ==============================
 
 Fastest FTP deploy possible. Specific blind upload mechanism is used together 
-with heavy multiprocessing and multithreading.
+with multiprocessing and multithreading to minimize deploy time and also downtime.
+
+What it can do?
+- Deploy local files to remote FTP(S) server efficiently. Only changed files are uploaded. Files are compared 
+by contents - hash (not by date or size).
+- Exclude unnecessary or unwanted files 
+- Purge specific directories (cache, logs, ...)
+- Run local commands before/after deploy
+- Prepare Composer dependencies where dev dependencies are excluded
+
+Main use of this tool is for public web hosting services where only FTP(S) is available and no other protocol 
+can be used. But it's also useful for private servers since FTPS is more efficient than other transfer protocols.
+
+What it can't do?
+- I can't do anything other than synchronize local files to remote FTP(S)
+- It can't do two-way sync, reverse sync, ...
+- It can't use any other protocols (SFTP, SCP, ...)
+
+Limitations
+- All developers sharing access need to use this tool in order to make differential sync work properly. This tool 
+uses index file where all files are tracked. When file changes outside this index then differential sync will 
+not see these changes and thus will fail to work properly. This situation can't be detected and tool will 
+report successful transfer, yet it may fail to replace some files and this may result in silently broken deploy.
+- Active FTP won't work most of the time by design - passive FTP is required.
+
+This tool doesn't use GIT since deploy based on GIT commits is not good idea. In real world GIT deploy will eventually
+force developers to make nonsense commits just to trigger temporary deploy when debugging.
 
 Installation
 ------------
 
-1. Python 3 required
-2. Obtain sources ``git clone https://github.com/kolinger/ftp-deploy.git``
+1. [Python 3](https://www.python.org/downloads/) required
+
+2. Obtain sources `git clone https://github.com/kolinger/ftp-deploy.git` or 
+[download zip](https://github.com/kolinger/ftp-deploy/archive/refs/heads/master.zip)
+
 3. Done
 
 Configuration
@@ -70,8 +99,8 @@ Configuration is done via .json files (this shows all options).
 }
 ````
 
-When composer file is specified then only production dependencies are deployed (--no-dev).
-Also --prefer-dist is used to exclude unnecessary files.
+When composer file is specified then only production dependencies are deployed (`--no-dev`).
+Also `--prefer-dist` is used to exclude unnecessary files.
 
 Basic config will look like this:
 ````
@@ -145,43 +174,34 @@ Usage
 Upgrade
 -------
 
-Just ```git pull```
+Just `git pull` or [download zip](https://github.com/kolinger/ftp-deploy/archive/refs/heads/master.zip)
+
+Speed of FTP
+------------
+When uploading many small files over FTP then lot of small transactions are needed. And in such scenario latency 
+will limit bandwidth and thus only more parallel connections (threads) will improve speed. You will se more and more
+improvement from more threads the worse connection you have or the more distance you have between you and server.
+
+This is what `"threads"` and `"purge_threads"` are for. We want to set thread count as high as possible.
+But we can't just set any number since FTP servers often limit maximum number of connections per user or/and IP.
+Also, high thread count will result in many connections and this may clog your router or trigger 
+limitation of your ISP. If your internet stops working, or you see a lot of errors -> lower thread count.
+
+Most time 10 or 5 threads will work but sometimes <5 is required.
+
+If your ISP is very restrictive and will not allow even 5 threads then you may benefit using VPN. I have experience
+where ISP couldn't handle more than 2 threads but 10 threads over VPN did give huge improvements.
 
 How it works
 ------------
-This script works in only one way. It synchronizes local files to remote FTP/FTPS server.
-It is tuned to work with most FTP servers (even with the broken ones).
-High performance is obtained by doing blind sync. Where we don't scan remote FTP file system.
-This is crucial for performance.
-
-Before upload this script will scan whole local tree and will compute hash for every file.
-Then it tries to download special `.ftp-deployment` index file.
-This file represents list of uploaded files on remote and their hash.
+Before upload this tool will scan local tree and compute hash for every file.
+Then it tries to download index file from remote (`.deployment-index` ).
+This index represents list of uploaded files on remote and their hash.
 Then it compares local tree and hashes to content of this index file.
-When mismatch is found then file is queue for upload or deletion.
-After uploading/deletion new index is created and uploaded to remote as `.ftp-deployment`.
+When mismatch is found then file is queued for upload or deletion.
+After uploading/deletion new index is created and uploaded to remote as `.deployment-index`.
 This mean we don't have idea of what is actually on remote server.
-Everything is based on contents of `.ftp-deployment` file.
+Everything is based on contents of index (`.deployment-index` file).
 
-This means only changed files are uploaded. This improves performance by lot on large code bases.
-This also means we don't ever scan whole remote tree (except for purge directories). This saves huge amount of time.
-
-For this to work everyone in team needs to use `ftp-deploy`.
-If everyone is using `ftp-deploy` then deploy will work without issues. Of course GIT is required for sync between members.
-If somebody modifies FTP contents and doesn't update `.ftp-deployment` then deploy will not work as expected!
-In such case full deploy needs to be done with `--force`.
-
-This is limiting mechanism, but it brings huge performance gains. No other mechanism can compare in effectivity.
-
-Local scanning and calculation of hashes is done in multiprocessing manner
-in order to fully initialize today's many core processors with NVMe storage.
-
-Upload, deletion, purging is all done in multithreaded manner where many parallel connections are used.
-Many threads and connections will max out possible bandwidth of link.
-Be careful with thread count. FTP servers will often limit maximum connection limit to 10 or 5.
-If you see lots of errors bring thread count down.
-Also, many threads can bring internet connection to halt. Be aware of what your ISP will be able to handle.
-
-I prefer maximum number of thread, mostly 10 and 5 or bellow 5 for pesky FTP servers.
-My previous ISP wasn't able to handle more than 2. In such case I did use VPN and did have much better
-performance with many threads over VPN than with 2 threads over native link. Threads mean performance.
+This mechanism creates bunch of limitations but any other mechanism will need to scan remote tree and 
+that is very expensive operation over FTP(S) and thus very slow in real world.
