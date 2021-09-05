@@ -7,18 +7,18 @@ with multiprocessing and multithreading to minimize deploy time and also downtim
 What it can do?
 - Deploy local files to remote FTP(S) server efficiently. Only changed files are uploaded. Files are compared 
 by contents - hash (not by date or size).
-- Exclude unnecessary or unwanted files 
-- Purge specific directories (cache, logs, ...)
-- Run local commands before/after deploy
-- Prepare Composer dependencies where dev dependencies are excluded
+- Exclude unnecessary or unwanted files.
+- Purge specific directories (cache, logs, ...).
+- Run local commands before/after deploy.
+- Prepare Composer dependencies where dev dependencies are excluded.
 
 Main use of this tool is for public web hosting services where only FTP(S) is available and no other protocol 
 can be used. But it's also useful for private servers since FTPS is more efficient than other transfer protocols.
 
 What it can't do?
-- I can't do anything other than synchronize local files to remote FTP(S)
+- It can't do anything other than synchronize local files to remote FTP(S) server.
 - It can't do two-way sync, reverse sync, ...
-- It can't use any other protocols (SFTP, SCP, ...)
+- It can't use any other protocols (SFTP, SCP, ...).
 
 Limitations
 - All developers sharing access need to use this tool in order to make differential sync work properly. This tool 
@@ -178,9 +178,9 @@ Just `git pull` or [download zip](https://github.com/kolinger/ftp-deploy/archive
 
 Speed of FTP
 ------------
-When uploading many small files over FTP then lot of small transactions are needed. And in such scenario latency 
-will limit bandwidth and thus only more parallel connections (threads) will improve speed. You will se more and more
-improvement from more threads the worse connection you have or the more distance you have between you and server.
+When uploading many small files over FTP then a lot of small transactions are needed. And in such scenario latency 
+will limit bandwidth and thus only more parallel connections (threads) will improve speed. You will see more and more
+improvement from threads the worse connection you have or the more distance you have between you and server.
 
 This is what `"threads"` and `"purge_threads"` are for. We want to set thread count as high as possible.
 But we can't just set any number since FTP servers often limit maximum number of connections per user or/and IP.
@@ -190,7 +190,7 @@ limitation of your ISP. If your internet stops working, or you see a lot of erro
 Most time 10 or 5 threads will work but sometimes <5 is required.
 
 If your ISP is very restrictive and will not allow even 5 threads then you may benefit using VPN. I have experience
-where ISP couldn't handle more than 2 threads but 10 threads over VPN did give huge improvements.
+where ISP couldn't handle more than 2 threads but 10 threads over VPN did work and did give huge improvements.
 
 How it works
 ------------
@@ -200,7 +200,7 @@ This index represents list of uploaded files on remote and their hash.
 Then it compares local tree and hashes to content of this index file.
 When mismatch is found then file is queued for upload or deletion.
 After uploading/deletion new index is created and uploaded to remote as `.deployment-index`.
-This mean we don't have idea of what is actually on remote server.
+This means we don't have idea of what is actually on remote server.
 Everything is based on contents of index (`.deployment-index` file).
 
 This mechanism creates bunch of limitations but any other mechanism will need to scan remote tree and 
