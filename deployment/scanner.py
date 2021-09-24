@@ -4,21 +4,20 @@ from logging import StreamHandler
 import multiprocessing
 from multiprocessing import Pool, cpu_count, Manager
 import os
+from os import DirEntry
 from queue import Empty
-import re
 import signal
 import sys
 from time import sleep, time
 
 from deployment.checksum import sha256_checksum
-from deployment.index import Index
 
 
 class Scanner:
-    def __init__(self, config, roots, ignored, mapping):
+    def __init__(self, config, roots, exclusion):
         self.config = config
         self.roots = roots
-        self.ignored = self.format_ignored(ignored, mapping)
+        self.exclusion = exclusion
         self.prefix = None
         self.result = {}
 
@@ -87,12 +86,13 @@ class Scanner:
                     parent, prefix = scan_queue.get_nowait()
 
                     with os.scandir(parent) as iterator:
+                        iterator = iterator  # type: list[DirEntry]
                         for entry in iterator:
                             path = entry.path
                             if os.name == "nt":
                                 path = path.replace("\\", "/")
 
-                            ignored = self.is_ignored(path)
+                            ignored = self.exclusion.is_ignored_absolute(path)
 
                             if entry.is_file():
                                 if not ignored:
@@ -137,37 +137,6 @@ class Scanner:
             logging.exception(sys.exc_info()[0])
 
         running_count.set(running_count.get() - 1)
-
-    def format_ignored(self, ignored, mapping):
-        ignored.append(Index.FILE_NAME)
-        ignored.append(Index.BACKUP_FILE_NAME)
-        ignored.append("/.ftp-")
-
-        formatted = []
-        for pattern in ignored:
-            if pattern in mapping:
-                for root in self.roots:
-                    if not mapping[pattern].startswith(root):
-                        formatted.append(root + pattern)
-
-            elif pattern.startswith("/"):
-                for root in self.roots:
-                    formatted.append(root + pattern)
-
-            else:
-                formatted.append(pattern)
-
-        return formatted
-
-    def is_ignored(self, path):
-        for pattern in self.ignored:
-            root = pattern.startswith("/") or re.match(r"^[a-z]+:/", pattern, flags=re.I)
-            if root and path.startswith(pattern):
-                return pattern
-            elif pattern in path:
-                return pattern
-
-        return False
 
 
 def setup_logging():

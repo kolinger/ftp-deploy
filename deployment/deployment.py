@@ -11,6 +11,7 @@ from time import sleep
 
 from deployment.composer import Composer
 from deployment.counter import Counter
+from deployment.exclusion import Exclusion
 from deployment.ftp import Ftp
 from deployment.index import Index
 from deployment.process import Process
@@ -85,7 +86,8 @@ class Deployment:
                 self.run_commands(self.config.run_before)
 
         logging.info("Scanning...")
-        scanner = Scanner(self.config, roots, self.config.ignore, self.mapping)
+        exclusion = Exclusion(roots, self.config.ignore, self.mapping)
+        scanner = Scanner(self.config, roots, exclusion)
         self.index.hashes = objects = scanner.scan()
 
         logging.info("Calculating changes...")
@@ -112,7 +114,7 @@ class Deployment:
 
             if remove:
                 for path in contents:
-                    if path not in objects:
+                    if path not in objects and not exclusion.is_ignored_relative(path):
                         to_delete.append(path)
             else:
                 offset = len(contents)
