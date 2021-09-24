@@ -53,7 +53,7 @@ Installation
 
 3. Done
 
-(no other dependencies are required expect for python itself)
+(no other dependencies are required except for python itself)
 
 Configuration
 -------------
