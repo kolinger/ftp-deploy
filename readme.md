@@ -4,7 +4,7 @@ High performance FTP(S) deploy
 Fastest FTP deploy possible. Specific blind upload mechanism is used together 
 with multiprocessing and multithreading to minimize deploy time and also downtime.
 
-What it can do?
+#### What it can do?
 - Deploy local files to remote FTP(S) server efficiently. Only changed files are uploaded. Files are compared 
 by contents - hash (not by date or size).
 - Exclude unnecessary or unwanted files.
@@ -15,20 +15,33 @@ by contents - hash (not by date or size).
 Main use of this tool is for public web hosting services where only FTP(S) is available and no other protocol 
 can be used. But it's also useful for private servers since FTPS is more efficient than other transfer protocols.
 
-What it can't do?
+#### What it can't do?
 - It can't do anything other than synchronize local files to remote FTP(S) server.
 - It can't do two-way sync, reverse sync, ...
 - It can't use any other protocols (SFTP, SCP, ...).
 
-Limitations
+#### Limitations
 - All developers sharing access need to use this tool in order to make differential sync work properly. This tool 
 uses index file where all files are tracked. When file changes outside this index then differential sync will 
 not see these changes and thus will fail to work properly. This situation can't be detected and tool will 
 report successful transfer, yet it may fail to replace some files and this may result in silently broken deploy.
 - Active FTP won't work most of the time by design - passive FTP is required.
 
+#### Purge notes
+- Purge removes all files and directories recursively
+- **Purge removes everything including ignored/excluded patterns!**
+- If target is file - file is simple deleted
+- If target is directory - directory is first renamed to temporary name and new directory is created as replacement.
+This is done to remove directory (like cache) immediately. Since directory can have many files and all files need
+to be removed one by one. This can take long time. Rename is one command, recursive deletion of directory can be 
+thousands of commands. Thus purge has immediate effect and rest of purge can be long but application won't be affected 
+by this delay since all files or directories don't exist from view of application.
+
+#### Why make custom tool for comparing file tree changes when tools like GIT exist?
 This tool doesn't use GIT since deploy based on GIT commits is not good idea. In real world GIT deploy will eventually
-force developers to make nonsense commits just to trigger temporary deploy when debugging.
+force developers to make nonsense commits just to trigger temporary deploy when debugging. Maybe not in theory but
+real world is different from theory and best case practices. GIT and other version control tools are not designed 
+for deploy. GIT deploy may work for some but not for others. Self-contained tool can work for everyone.
 
 Installation
 ------------
@@ -39,6 +52,8 @@ Installation
 [download zip](https://github.com/kolinger/ftp-deploy/archive/refs/heads/master.zip)
 
 3. Done
+
+(no other dependencies are required expect for python itself)
 
 Configuration
 -------------
