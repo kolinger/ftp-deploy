@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import shlex
 import subprocess
-from time import sleep
 
 try:
     import argparse
@@ -15,16 +14,35 @@ try:
     from deployment.deployment import Deployment
     from deployment.exceptions import MessageException
 
+    known_operations = [
+        "Finished mirror",
+        "Transferring file",
+        "Finished transfer",
+        "Removing old file",
+        "Making directory",
+    ]
+
 
     def mirror(config, force):
-        parameters = ""
+        parameters = "-vv"
         for path in config.ignore:
             parameters += " --exclude " + path
+        if force:
+            parameters += " --continue"
 
         execute = [
+            "set net:connection-limit %s" % config.threads,
             "set net:timeout 30",
-            "set net:max-retries 5",
+            "set net:max-retries 20",
+            "set dns:order \\\"inet inet6\\\"",
+            "set mirror:parallel-directories true",
         ]
+
+        error_wait = config.connection_limit_wait
+        if error_wait > 0:
+            execute.append("set net:reconnect-interval-base %s" % error_wait)
+            execute.append("set net:reconnect-interval-max %s" % error_wait)
+            execute.append("set net:reconnect-interval-multiplier 1")
 
         if config.bind:
             execute.append("set net:socket-bind-ipv4 " + config.bind)
@@ -34,28 +52,59 @@ try:
         else:
             execute.append("set ftp:ssl-allow false")
 
-        mirror_extra = "--continue" if not force else ""
         execute.extend([
             "open %s:%s" % (config.host, config.port),
             "user " + shlex.quote(config.user) + " " + shlex.quote(config.password),
-            "mirror %s --delete --parallel=%s %s %s" % (
-                mirror_extra, config.threads, parameters, config.remote
+            "mirror --delete --parallel=%s %s %s" % (
+                config.threads, parameters, config.remote
             ),
-            "bye",
+            "echo done",
         ])
 
         command = [
             "cd " + config.local,
-            "wsl lftp -e \"" + " && ".join(execute) + "\"",
+            "wsl lftp -c \"" + " && ".join(execute) + "\"",
         ]
-        command = " & ".join(command)
+        command = " && ".join(command)
 
-        process = subprocess.Popen(command, shell=True, stderr=sys.stderr, stdout=sys.stdout)
+        lines = []
+        process = subprocess.Popen(command, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
         while process.poll() is None:
-            sleep(1)
+            for line in process.stdout:
+                line = line.decode("utf-8", errors="ignore").rstrip()
+                print(line)
+                lines.append(line)
+
+        unexpected = []
+        expected = 0
+        found_done = False
+        for line in lines:
+            is_known = False
+            for known in known_operations:
+                if line.startswith(known):
+                    is_known = True
+                    break
+
+            if is_known:
+                expected += 1
+            else:
+                if line == "done":
+                    found_done = True
+                else:
+                    unexpected.append(line)
 
         if process.returncode != 0:
-            logging.error("lftp mirror failed with code: %s" % process.returncode)
+            safe = command.replace(config.password, "****")
+            logging.error("lftp mirror failed with command: %s, exit code: %s, unexpected output: %s" % (
+                safe, process.returncode, "\n".join(unexpected)
+            ))
+            exit(1)
+
+        if (len(unexpected) > 0 or expected == 0) and found_done:
+            safe = command.replace(config.password, "****")
+            logging.error("lftp mirror returned unexpected output with command: %s, unexpected output: %s" % (
+                safe, "\n".join(unexpected)
+            ))
             exit(1)
 
         logging.info("Completed")
@@ -81,6 +130,7 @@ try:
         # parser.add_argument("--implicit", help="FTP TLS implicit mode", action="store_true", default=False)
         # parser.add_argument("--active", help="FTP active mode", action="store_true", default=False)
         # parser.add_argument("--passive-workaround", help="FTP passive workaround", action="store_true", default=False)
+        parser.add_argument("--error-wait", help="Wait given seconds on error", type=int, default=10)
         parser.add_argument("-t", "--threads", help="Threads count", type=int, default=10)
         parser.add_argument("-b", "--bind", help="Local address to bind to", default=None)
         parser.add_argument("-r", "--remote", help="Remote directory", default="/")
@@ -113,6 +163,7 @@ try:
             # config.implicit = args.implicit
             # config.passive = not args.active
             # config.passive_workaround = args.passive_workaround
+            config.connection_limit_wait = args.error_wait
             config.threads = args.threads
             config.bind = args.bind
 
