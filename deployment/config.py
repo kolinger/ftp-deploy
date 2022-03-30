@@ -13,6 +13,7 @@ class Config:
     implicit = False
     passive = True
     passive_workaround = False
+    connection_limit_wait = 0
     host = None
     port = 21
     user = None
@@ -47,7 +48,7 @@ class Config:
             inner = data["connection"]
 
             if "threads" in inner:
-                self.threads = inner["threads"]
+                self.threads = int(inner["threads"])
                 if self.threads < 1:
                     self.threads = 1
 
@@ -62,6 +63,9 @@ class Config:
 
             if "passive_workaround" in inner:
                 self.passive_workaround = inner["passive_workaround"]
+
+            if "connection_limit_wait" in inner:
+                self.connection_limit_wait = int(inner["connection_limit_wait"])
 
             if self.is_defined("host", inner, "connection.host"):
                 self.host = inner["host"]

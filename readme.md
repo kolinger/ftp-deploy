@@ -68,6 +68,7 @@ Configuration is done via .json files (this shows all options).
         "secure": false,
         "passive": true,
         "passive_workaround": false,
+        "connection_limit_wait": 60,
         "host": "hostname",
         "port": 21,
         "user": "username",

@@ -4,7 +4,7 @@ import os
 from queue import Empty
 import sys
 from threading import Thread
-from time import time
+from time import time, sleep
 
 from deployment.ftp import Ftp
 
@@ -80,7 +80,15 @@ class Worker(Thread):
                         self.local_counter += 1
                     except ftplib.all_errors as e:
                         self.phase = "error"
-                        logging.warning("Upload of " + path + " failed, will retry later, reason: " + str(e))
+                        message = str(e)
+                        logging.warning("Upload of " + path + " failed, will retry later, reason: " + message)
+                        if "user connections allowed at a time" in message:
+                            if self.config.connection_limit_wait > 0:
+                                logging.warning(
+                                    "Connection limit reached, will now wait for %s seconds" %
+                                    self.config.connection_limit_wait
+                                )
+                                sleep(self.config.connection_limit_wait)
 
                         if retry < self.config.retry_count:
                             self.queue.put({
@@ -89,7 +97,7 @@ class Worker(Thread):
                             })
                         else:
                             logging.exception(e)
-                            self.failed.put(self.mode + " " + path + " (" + str(e) + ")")
+                            self.failed.put(self.mode + " " + path + " (" + message + ")")
 
                         self.phase = "close"
                         self.ftp.close()
