@@ -120,7 +120,9 @@ class Index:
 
     def remove(self):
         self.close()
-        os.remove(self.config.local + self.FILE_NAME)
+        path = self.config.local + self.FILE_NAME
+        if os.path.exists(path):
+            os.remove(path)
 
     def close(self):
         if self.file is not None:

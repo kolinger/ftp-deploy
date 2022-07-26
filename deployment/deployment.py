@@ -46,7 +46,7 @@ class Deployment:
 
         remove = True
         contents = {}
-        if not force:
+        if not force and not self.dry_run:
             result = self.index.read()
             remove = result["remove"]
             contents = result["contents"]
@@ -149,7 +149,6 @@ class Deployment:
 
         if self.dry_run:
             logging.warning("Not uploading index in dry run")
-            self.index.remove()
         else:
             logging.info("Uploading index...")
             self.index.upload()
