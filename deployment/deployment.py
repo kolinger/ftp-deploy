@@ -46,10 +46,14 @@ class Deployment:
 
         remove = True
         contents = {}
-        if not force and not self.dry_run:
-            result = self.index.read()
-            remove = result["remove"]
-            contents = result["contents"]
+        if not force:
+            try:
+                result = self.index.read()
+                remove = result["remove"]
+                contents = result["contents"]
+            except Exception:
+                if not self.dry_run:
+                    raise
         roots = [self.config.local]
 
         if len(self.config.purge_partial) == 0:
@@ -149,6 +153,7 @@ class Deployment:
 
         if self.dry_run:
             logging.warning("Not uploading index in dry run")
+            self.index.remove()
         else:
             logging.info("Uploading index...")
             self.index.upload()
