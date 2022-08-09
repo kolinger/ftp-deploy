@@ -17,6 +17,8 @@ class Ftp:
     error_file_failed_no_directory = [
         "could not create file",
         "no such file or directory",
+        "cannot find the path",
+        "cannot find the file",
     ]
 
     def __init__(self, config):

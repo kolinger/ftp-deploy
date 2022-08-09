@@ -91,13 +91,21 @@ class Worker(Thread):
                                     "invalid argument",
                                     "operation failed",
                                     "is a directory",
+                                    "access is denied",
+                                    "cannot find the file",
+                                    "cannot find the path",
                                 ])
                             except (ExpectedError, EOFError):
                                 type = Purge.TYPE_LISTING
 
                         elif type is Purge.TYPE_FILE:
                             try:
-                                self.retry(self.ftp.delete_file, {"file": parent}, "operation failed")
+                                self.retry(self.ftp.delete_file, {"file": parent}, [
+                                    "operation failed",
+                                    "access is denied",
+                                    "cannot find the file",
+                                    "cannot find the path",
+                                ])
                                 self.files += 1
                             except EOFError:
                                 parent = os.path.dirname(parent)
@@ -110,6 +118,10 @@ class Worker(Thread):
                                 self.retry(self.ftp.delete_directory, {"directory": parent, "verify": True}, [
                                     "directory not empty",
                                     "operation failed",
+                                    "access is denied",
+                                    "directory is not empty",
+                                    "cannot find the file",
+                                    "cannot find the path",
                                 ])
                                 self.directories += 1
                             except (ExpectedError, EOFError):
@@ -129,7 +141,12 @@ class Worker(Thread):
                                 "extended": True,
                             }
                             try:
-                                for path, kind in self.retry(self.ftp.list_directory_contents, parameters, fallback=[]):
+                                list = self.retry(self.ftp.list_directory_contents, parameters, [
+                                    "access is denied",
+                                    "cannot find the file",
+                                    "cannot find the path",
+                                ], fallback=[])
+                                for path, kind in list:
                                     path = parent + "/" + path
                                     if kind == "file":
                                         self.queue.put((path, Purge.TYPE_FILE))
@@ -138,6 +155,8 @@ class Worker(Thread):
 
                                 self.queue.put((parent, Purge.TYPE_DIRECTORY))
                             except EOFError:
+                                pass
+                            except ExpectedError:
                                 pass
 
                         self.queue.task_done()
@@ -185,7 +204,9 @@ class Worker(Thread):
                 if expected_error and isinstance(e, ftplib.error_perm):
                     for string in expected_error:
                         if string in message:
-                            raise ExpectedError(e)
+                            exception = ExpectedError(e)
+                            exception.error = string
+                            raise exception
 
                 if isinstance(e, EOFError) or isinstance(e, OSError):
                     self.ftp.close()
@@ -198,4 +219,4 @@ class Worker(Thread):
 
 
 class ExpectedError(Exception):
-    pass
+    error = None
