@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import platform
 import shlex
 import subprocess
 
@@ -16,17 +17,18 @@ try:
 
     known_operations = [
         "Finished mirror",
-        "Transferring file",
         "Finished transfer",
+        "Transferring file",
         "Removing old file",
         "Making directory",
+        "Removing old directory",
     ]
 
 
-    def mirror(config, force):
+    def mirror(config, force, lftp_binary):
         parameters = "-vv"
         for path in config.ignore:
-            parameters += " --exclude " + path
+            parameters += " --exclude %s" % path
         if force:
             parameters += " --continue"
 
@@ -45,7 +47,7 @@ try:
             execute.append("set net:reconnect-interval-multiplier 1")
 
         if config.bind:
-            execute.append("set net:socket-bind-ipv4 " + config.bind)
+            execute.append("set net:socket-bind-ipv4 %s" % config.bind)
 
         if config.secure:
             execute.append("set ssl:verify-certificate false")
@@ -54,16 +56,19 @@ try:
 
         execute.extend([
             "open %s:%s" % (config.host, config.port),
-            "user " + shlex.quote(config.user) + " " + shlex.quote(config.password),
+            "user %s %s" % (shlex.quote(config.user), shlex.quote(config.password)),
             "mirror --delete --parallel=%s %s %s" % (
                 config.threads, parameters, config.remote
             ),
             "echo done",
         ])
 
+        if platform.system() == "Windows":
+            lftp_binary = "wsl.exe %s" % lftp_binary
+
         command = [
-            "cd " + config.local,
-            "wsl lftp -c \"" + " && ".join(execute) + "\"",
+            "cd %s" % config.local,
+            "%s -c \"%s\"" % (lftp_binary, " && ".join(execute)),
         ]
         command = " && ".join(command)
 
@@ -137,6 +142,7 @@ try:
         parser.add_argument("-l", "--local", help="Local directory", default=".")
         parser.add_argument("-i", "--ignore", help="Ignore pattern", action="append")
         parser.add_argument("-f", "--force", help="Force whole transfer", action="store_true", default=False)
+        parser.add_argument("--lftp-binary", help="lftp binary path", default="/usr/bin/lftp")
         args = parser.parse_args()
 
         downloader = None
@@ -177,7 +183,7 @@ try:
             logging.info("Downloading %s@%s%s" % (config.user, config.host, config.remote))
             logging.info("Using %s threads" % config.threads)
 
-            mirror(config, force=args.force)
+            mirror(config, force=args.force, lftp_binary=args.lftp_binary)
 
             logging.info("Elapsed time %s seconds" % (timer() - start_time))
 
