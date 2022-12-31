@@ -179,7 +179,8 @@ if __name__ == "__main__":
 
         mirror(config, force=args.force, lftp_binary=args.lftp_binary)
 
-        logging.info("Elapsed time %s seconds" % (timer() - start_time))
+        elapsed = round((timer() - start_time) * 1000) / 1000
+        logging.info("Elapsed %s seconds" % elapsed)
 
         exit(0)
 

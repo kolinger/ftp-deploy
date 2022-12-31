@@ -5,7 +5,7 @@ try:
     from logging import FileHandler, StreamHandler
     import os
     import sys
-    import timeit
+    from timeit import default_timer as timer
 
     from deployment.config import Config
     from deployment.deployment import Deployment
@@ -45,10 +45,10 @@ try:
                 fileName = args.name[0]
 
             if not os.path.isfile(fileName):
-                fileName = ".ftp-" + fileName + ".json"
+                fileName = ".ftp-%s.json" % fileName
 
             if not os.path.isfile(fileName):
-                logging.error("Configuration file " + fileName + " doesn't exist")
+                logging.error("Configuration file %s doesn't exist" % fileName)
                 sys.exit(1)
 
             config = Config()
@@ -64,7 +64,7 @@ try:
                 config.bind = args.bind
 
             if config.file_log:
-                file = FileHandler(config.local + "/" + fileName + ".log")
+                file = FileHandler(os.path.join(config.local, "%s.log" % fileName))
                 file.setLevel(logging.INFO)
                 file.setFormatter(formatter)
                 logger.addHandler(file)
@@ -75,17 +75,17 @@ try:
                 logging.info("Done")
                 sys.exit(0)
 
-            start_time = timeit.default_timer()
-            logging.info("Deploying configuration with name " + config.name)
+            start_time = timer()
+            logging.info("Deploying configuration with name %s" % config.name)
 
-            logging.info("Using " + str(config.threads) + " threads")
+            logging.info("Using %s threads" % config.threads)
 
             deployment = Deployment(config)
             deployment.dry_run = args.dry_run
             deployment.deploy(args.skip, args.purge_partial, args.purge_only, args.purge_skip, args.force)
 
-            elapsed = timeit.default_timer() - start_time
-            logging.info("Elapsed time " + str(elapsed) + " seconds")
+            elapsed = round((timer() - start_time) * 1000) / 1000
+            logging.info("Elapsed %s seconds" % elapsed)
 
             sys.exit(0)
 
