@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -6,6 +7,9 @@ from deployment.exceptions import ConfigException
 
 
 class Config:
+    file_path = None
+    original_contents = None
+    original_data = None
     name = None
     threads = 2
     local = None
@@ -18,6 +22,8 @@ class Config:
     port = 21
     user = None
     password = None
+    password_encrypted = None
+    password_salt = None
     remote = None
     bind = None
     retry_count = 10
@@ -29,17 +35,23 @@ class Config:
     file_log = False
     block_size = 1048576  # 1 MiB
     composer = None
+    password_encryption = False
+    shared_passphrase_verify_file = None
     run_before = []
     run_after = []
 
     def __init__(self):
         pass
 
-    def parse(self, file):
-        self.name = os.path.splitext(os.path.basename(file))[0]
+    def parse(self, file_path):
+        self.file_path = file_path
+        self.name = os.path.splitext(os.path.basename(file_path))[0]
 
-        with open(file) as file:
-            data = json.load(file)
+        with open(self.file_path, "r") as file:
+            contents = file.read()
+            self.original_contents = contents
+            data = json.loads(contents)
+            self.original_data = copy.deepcopy(data)
 
         if self.is_defined("local", data):
             self.local = os.path.realpath(data["local"])
@@ -78,6 +90,15 @@ class Config:
 
             if self.is_defined("password", inner, "connection.password"):
                 self.password = inner["password"]
+
+            if "password_encrypted" in inner:
+                self.password_encrypted = inner["password_encrypted"]
+
+            if "password_salt" in inner:
+                self.password_salt = inner["password_salt"]
+
+            if "password_encryption" in inner:
+                self.password_encryption = inner["password_encryption"]
 
             if self.is_defined("root", inner, "connection.root"):
                 self.remote = inner["root"]

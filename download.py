@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from getpass import getpass
 import logging
 from logging import StreamHandler
 import os
@@ -157,7 +158,7 @@ if __name__ == "__main__":
         if args.password is not None:
             config.password = args.password
         else:
-            config.password = input("Password: ")
+            config.password = getpass("Password: ")
 
         config.secure = not args.insecure
         # config.implicit = args.implicit

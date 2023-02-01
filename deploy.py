@@ -6,11 +6,13 @@ try:
     import os
     import sys
     from timeit import default_timer as timer
+    from getpass import getpass
 
     from deployment.config import Config
     from deployment.deployment import Deployment
     from deployment.exceptions import MessageException
     from deployment.composer import Composer
+    from deployment import encryption
 
     if __name__ == '__main__':
         logger = logging.getLogger()
@@ -35,6 +37,17 @@ try:
         parser.add_argument("-f", "--force", action="store_true", help="force whole upload", default=False)
         parser.add_argument("--dry-run", action="store_true", help="just report changes", default=False)
         parser.add_argument("--clear-composer", action="store_true", help="clear composer and exit", default=False)
+        parser.add_argument("--use-encryption", action="store_true", help="use encryption for passwords", default=False)
+        parser.add_argument("-d", "--decrypt", action="store_true", help="print decrypted password", default=False)
+        parser.add_argument("--decrypt-in-place", action="store_true", help="decrypt password into project config",
+                            default=False)
+        shared_passphrase_help = "use shared passphrase, this option requires path to persistent file where " \
+                                 "shared passphrase verification data is stored"
+        parser.add_argument("--shared-passphrase", help=shared_passphrase_help)
+        ssh_agent_help = "enable ssh-agent support (ssh-agent, pageant, gpg-agent), requires --shared-passphrase"
+        parser.add_argument("--ssh-agent", action="store_true", help=ssh_agent_help)
+        ssh_key_help = "what ssh key to use, you can specify either name (ssh-rsa, ssh-ed25519, ...) or by comment"
+        parser.add_argument("--ssh-key", help=ssh_key_help)
         args = parser.parse_args()
 
         deployment = None
@@ -75,8 +88,55 @@ try:
                 logging.info("Done")
                 sys.exit(0)
 
+            if args.use_encryption:
+                config.password_encryption = True
+
+            if args.shared_passphrase:
+                config.shared_passphrase_verify_file = args.shared_passphrase
+
             start_time = timer()
-            logging.info("Deploying configuration with name %s" % config.name)
+            logging.info("Using configuration with name %s" % config.name)
+
+            passphrase = None
+            decrypting = args.decrypt or args.decrypt_in_place
+            encrypting = config.password_encryption and config.password is not None
+            need_passphrase = decrypting or encrypting or config.password_encrypted
+
+            if config.password is None and config.password_encrypted is None:
+                config.password = getpass("Password: ")
+
+            if need_passphrase and args.ssh_agent:
+                if args.shared_passphrase is None:
+                    raise MessageException(
+                        "If your want to use --ssh-agent then you need to also use --shared-passphrase"
+                    )
+                passphrase = encryption.decrypt_passphrase_via_ssh_agent(config, args.ssh_key)
+
+            if decrypting:
+                logging.info("Decrypting password...")
+                if config.password is not None:
+                    raise MessageException("Password is not encrypted")
+
+            if encrypting:
+                logging.info("Found plaintext password, please provide your passphrase for encryption:")
+                try:
+                    encryption.encrypt_config_password(config, passphrase)
+                    encryption.save_encrypted_password(config)
+                    logging.info("Plaintext password was successfully encrypted")
+                except ImportError:
+                    raise MessageException(
+                        "Encryption is enabled but cryptography dependency is missing, please install requirements.txt"
+                    )
+            elif config.password_encrypted:
+                encryption.decrypt_config_password(config, passphrase)
+
+            if decrypting:
+                if args.decrypt_in_place:
+                    encryption.save_decrypted_password(config)
+                    logging.info("Decrypted password saved into %s" % config.name)
+                else:
+                    print("Password: %s" % config.password)
+                sys.exit(0)
 
             logging.info("Using %s threads" % config.threads)
 
