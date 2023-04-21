@@ -20,6 +20,9 @@ class Ftp:
         "cannot find the path",
         "cannot find the file",
     ]
+    error_directory_not_empty = [
+        "directory not empty",
+    ]
 
     def __init__(self, config):
         self.config = config
@@ -136,9 +139,14 @@ class Ftp:
                 try:
                     self.ftp.rmd(directory)
                 except ftplib.error_perm as e:
-                    message = str(e)
+                    message = str(e).lower()
+                    for error in self.error_directory_not_empty:
+                        if error in message:
+                            raise DirectoryNotEmptyException("Directory not empty '%s' " % target)
+
                     if message.startswith("550"):  # directory not exists
                         return
+
                     raise e
 
     def delete_directory(self, directory, verify=False):
@@ -259,6 +267,10 @@ class Ftp:
 
 
 class InvalidStateException(Exception):
+    pass
+
+
+class DirectoryNotEmptyException(ftplib.Error):
     pass
 
 
