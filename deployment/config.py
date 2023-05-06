@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 import os
+import re
 
 from deployment.exceptions import ConfigException
 
@@ -54,7 +55,13 @@ class Config:
             self.original_data = copy.deepcopy(data)
 
         if self.is_defined("local", data):
-            self.local = os.path.realpath(data["local"])
+            path = data["local"]
+            if re.search(r"^\.($|[/\\])", path):
+                directory = os.path.dirname(os.path.realpath(self.file_path))
+                if directory:
+                    path = directory
+
+            self.local = os.path.realpath(path)
 
         if self.is_defined("connection", data):
             inner = data["connection"]
