@@ -6,8 +6,6 @@ import logging
 import os
 import re
 
-from paramiko.ssh_exception import SSHException
-
 from deployment.exceptions import MessageException
 
 current_key_derivation_version = "A"
@@ -134,6 +132,7 @@ def save_decrypted_password(config):
 def decrypt_passphrase_via_ssh_agent(config, ssh_key):
     from cryptography.fernet import Fernet, InvalidToken
     from paramiko import AgentKey
+    from paramiko.ssh_exception import SSHException
     import paramiko.agent
 
     # these internal methods were extracted from paramiko.Agent and paramiko.agent.AgentSSH
