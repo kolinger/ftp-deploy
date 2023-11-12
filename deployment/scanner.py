@@ -6,6 +6,7 @@ from multiprocessing import Pool, cpu_count, Manager
 import os
 from os import DirEntry
 from queue import Empty
+import re
 import signal
 import sys
 from time import sleep, time
@@ -98,11 +99,16 @@ class Scanner:
                                 if not ignored:
                                     hash_queue.put((path, prefix))
                             else:
-                                if not ignored or ignored == path:
-                                    if ignored != path:
+                                if isinstance(ignored, re.Pattern):
+                                    direct_ignored = ignored.search(path)
+                                else:
+                                    direct_ignored = ignored == path
+
+                                if not ignored or direct_ignored:
+                                    if not direct_ignored:
                                         scan_queue.put((path, prefix))
 
-                                    if not ignored or ignored != path:
+                                    if not ignored or not direct_ignored:
                                         result_queue.put((path[prefix:], None))
 
                     scan_queue.task_done()

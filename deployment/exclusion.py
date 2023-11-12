@@ -29,15 +29,29 @@ class Exclusion:
 
         analyzed = []
         for pattern in formatted:
-            root = pattern.startswith("/") or re.match(r"^[a-z]+:/", pattern, flags=re.I) is not None
-            analyzed.append((root, pattern))
+            kind = None
+            if "*" in pattern:
+                pieces = pattern.split("*")
+                pieces = list(map(re.escape, pieces))
+                pattern = ".*".join(pieces)
+                pattern = re.compile("^" + pattern + r"$", flags=re.I | re.DOTALL)
+                kind = "regex"
+            elif pattern.startswith("/") or re.match(r"^[a-z]+:/", pattern, flags=re.I) is not None:
+                kind = "root"
+
+            analyzed.append((kind, pattern))
 
         return analyzed
 
     def is_ignored_absolute(self, path):
-        for root, pattern in self.patterns:
-            if root and path.startswith(pattern):
-                return pattern
+        for kind, pattern in self.patterns:
+            if kind == "regex":
+                if pattern.search(path):
+                    return pattern
+
+            elif kind == "root":
+                if path.startswith(pattern):
+                    return pattern
 
             elif pattern in path:
                 return pattern
