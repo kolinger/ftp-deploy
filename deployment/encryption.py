@@ -131,29 +131,20 @@ def save_decrypted_password(config):
 
 def decrypt_passphrase_via_ssh_agent(config, ssh_key):
     from cryptography.fernet import Fernet, InvalidToken
-    from paramiko import AgentKey
     from paramiko.ssh_exception import SSHException
-    import paramiko.agent
+    import paramiko
 
-    # these internal methods were extracted from paramiko.Agent and paramiko.agent.AgentSSH
-    # we can't use paramiko public interface since paramiko.Agent.get_keys() doesn't include comment
-    agent = paramiko.agent.AgentSSH()
-    agent._conn = paramiko.agent.get_agent_connection()
-    ptype, result = agent._send_message(paramiko.agent.cSSH2_AGENTC_REQUEST_IDENTITIES)
-    if ptype != paramiko.agent.SSH2_AGENT_IDENTITIES_ANSWER:
-        raise MessageException("ssh-agent: could not get keys, is your agent running?")
-
-    keys = []
-    matched = None
-    found = []
-    for i in range(result.get_int()):
-        agent_key = AgentKey(agent, result.get_binary())
-        agent_key.comment = result.get_string().decode("utf-8", errors="ignore")
-        if ssh_key is not None and (ssh_key == agent_key.comment or ssh_key == agent_key.name):
-            matched = agent_key
-        found.append("name: %s, comment: %s" % (agent_key.name, agent_key.comment))
-        keys.append(agent_key)
-    agent_key = matched
+    try:
+        found = []
+        matched = None
+        keys = paramiko.Agent().get_keys()
+        for agent_key in keys:
+            if ssh_key is not None and (ssh_key == agent_key.comment or ssh_key == agent_key.name):
+                matched = agent_key
+            found.append("name: %s, comment: %s" % (agent_key.name, agent_key.comment))
+        agent_key = matched
+    except SSHException as e:
+        raise MessageException("ssh-agent: could not get keys (%s), is your agent running?" % e)
 
     found.append("You can match your key either by name or comment")
 
